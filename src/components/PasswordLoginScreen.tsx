@@ -9,11 +9,10 @@ import { useTheme } from './ThemeProvider';
 import { useAuth } from '../contexts/AuthContext';
 
 interface PasswordLoginScreenProps {
-  phoneNumber: string;
-  countryCode: string;
+  // --- CORRECTION DE LA SIGNATURE ---
+  identifier: string; // On ne reçoit plus que 'identifier'
   onBack: () => void;
 }
-
 export function PasswordLoginScreen({ phoneNumber, countryCode, onBack }: PasswordLoginScreenProps) {
   const { login, isLoading, error } = useAuth();
   const [password, setPassword] = useState('');
