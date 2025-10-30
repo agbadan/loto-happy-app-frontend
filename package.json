@@ -1,6 +1,6 @@
 
   {
-      "name": "Application Lotto_Happy",
+      "name": "loto-happy-app-frontend",
       "version": "0.1.0",
       "private": true,
       "dependencies": {
