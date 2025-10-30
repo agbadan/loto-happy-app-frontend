@@ -3,106 +3,64 @@ import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Separator } from "./ui/separator";
 import { Calendar, Clock, TrendingUp, TrendingDown, Timer, Trophy, X, Loader2 } from "lucide-react";
-import { getBetHistory, BetHistoryItem } from "../utils/drawsAPI";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
+import apiClient from "../services/apiClient"; // Assurez-vous que ce chemin est correct
 
-interface BetHistoryProps {
+// Interface décrivant la structure d'un ticket retourné par l'API GET /api/tickets/me
+export interface BetHistoryItem {
+  id: string;
   userId: string;
+  username: string;
+  drawId: string;
+  betType: string;
+  numbers: string;
+  betAmount: number;
+  purchaseDate: string;
+  status: 'pending' | 'won' | 'lost';
+  winAmount?: number | null;
+  operatorName: string;
+  drawDate: string;
+  drawTime: string;
+  winningNumbers?: number[] | null;
 }
 
-export function BetHistory({ userId }: BetHistoryProps) {
+// Le composant n'a plus besoin de props, il récupère l'utilisateur via le token
+export function BetHistory() {
   const [bets, setBets] = useState<BetHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'upcoming' | 'pending' | 'won' | 'lost'>('all');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'won' | 'lost'>('all');
 
   useEffect(() => {
     const fetchHistory = async () => {
       setLoading(true);
       setError(null);
       try {
-        const history = await getBetHistory();
-        const sorted = history.sort((a, b) => 
-          new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime()
-        );
-        setBets(sorted);
+        const response = await apiClient.get<BetHistoryItem[]>('/api/tickets/me');
+        // Le backend trie déjà les tickets du plus récent au plus ancien
+        setBets(response.data);
       } catch (err) {
         setError("Impossible de charger l'historique des paris.");
-        toast.error("Impossible de charger l'historique des paris.");
+        toast.error("Impossible de charger l'historique. Veuillez essayer de vous reconnecter.");
       } finally {
         setLoading(false);
       }
     };
     fetchHistory();
-  }, [userId]);
+  }, []); // Se déclenche une seule fois au montage du composant
 
   const filteredBets = filter === 'all' 
     ? bets 
     : bets.filter(bet => bet.status === filter);
 
-  if (loading) {
-    return <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>;
-  }
-
-  if (error) {
-    return <div className="text-red-500 p-8 text-center">Failed to edit, 0 occurrences found for old_string (import { useState, useEffect } from "react";
-import { Card } from "./ui/card";
-import { Badge } from "./ui/badge";
-import { Separator } from "./ui/separator";
-import { Calendar, Clock, TrendingUp, TrendingDown, Timer, Trophy, X } from "lucide-react";
-import { getBetHistory, BetHistoryItem } from "../utils/draws";
-import { getOperatorById } from "../utils/games";
-
-interface BetHistoryProps {
-  userId: string;
-}
-
-export function BetHistory({ userId }: BetHistoryProps) {
-  const [bets, setBets] = useState<BetHistoryItem[]>([]);
-  const [filter, setFilter] = useState<'all' | 'upcoming' | 'pending' | 'won' | 'lost'>('all');
-
-  useEffect(() => {
-    const history = getBetHistory(userId);
-    // Trier par date de pari (plus récent en premier)
-    const sorted = history.sort((a, b) => 
-      new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime()
-    );
-    setBets(sorted);
-  }, [userId]);
-
-  const filteredBets = filter === 'all' 
-    ? bets 
-    : bets.filter(bet => bet.status === filter);
-
-  // ... (rest of the component is the same)
-}) in C:\Users\Geeklab\Desktop\Projet Casino\Code source Backend lotto happy\loto-happy-frontend\src\components\BetHistory.tsx. No edits made. The exact text in old_string was not found. Ensure you're not escaping content incorrectly and check whitespace, indentation, and context. Use read_file tool to verify.</div>;
-  }
-
-  // ... (rest of the component is the same)
-}
-
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: BetHistoryItem['status']) => {
     switch (status) {
-      case 'upcoming':
-        return <Badge className="bg-[#009DD9]/20 text-[#009DD9] border-[#009DD9]/30">
-          <Timer className="h-3 w-3 mr-1" />
-          À venir
-        </Badge>;
       case 'pending':
-        return <Badge className="bg-[#FF6B00]/20 text-[#FF6B00] border-[#FF6B00]/30">
-          <Clock className="h-3 w-3 mr-1" />
-          En attente
-        </Badge>;
+        return <Badge className="bg-[#FF6B00]/20 text-[#FF6B00] border-[#FF6B00]/30"><Clock className="h-3 w-3 mr-1" />En attente</Badge>;
       case 'won':
-        return <Badge className="bg-[#00A651]/20 text-[#00A651] border-[#00A651]/30">
-          <Trophy className="h-3 w-3 mr-1" />
-          Gagné
-        </Badge>;
+        return <Badge className="bg-[#00A651]/20 text-[#00A651] border-[#00A651]/30"><Trophy className="h-3 w-3 mr-1" />Gagné</Badge>;
       case 'lost':
-        return <Badge className="bg-muted text-muted-foreground border-border">
-          <X className="h-3 w-3 mr-1" />
-          Perdu
-        </Badge>;
+        return <Badge className="bg-muted text-muted-foreground border-border"><X className="h-3 w-3 mr-1" />Perdu</Badge>;
       default:
         return null;
     }
@@ -110,20 +68,16 @@ export function BetHistory({ userId }: BetHistoryProps) {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
+    return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
   };
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('fr-FR', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  if (loading) {
+    return <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  }
+
+  if (error) {
+    return <div className="text-red-500 p-8 text-center">{error}</div>;
+  }
 
   if (bets.length === 0) {
     return (
@@ -143,12 +97,11 @@ export function BetHistory({ userId }: BetHistoryProps) {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Filtres - Défilables sur mobile */}
+      {/* Filtres */}
       <div className="w-full overflow-x-auto scrollbar-visible -mx-3 px-3 sm:mx-0 sm:px-0">
         <div className="flex gap-2 min-w-max sm:flex-wrap sm:min-w-0">
           {[
             { value: 'all', label: 'Tous' },
-            { value: 'upcoming', label: 'À venir' },
             { value: 'pending', label: 'En attente' },
             { value: 'won', label: 'Gagnés' },
             { value: 'lost', label: 'Perdus' },
@@ -202,75 +155,45 @@ export function BetHistory({ userId }: BetHistoryProps) {
           </Card>
         ) : (
           filteredBets.map((bet) => {
-            // Utiliser une couleur par défaut puisqu'on n'a plus de gameId
-            const gameColor = '#FFD700';
-
+            const gameColor = '#FFD700'; // Logique de couleur à améliorer
             return (
-              <Card 
-                key={bet.id} 
-                className="border-border bg-card overflow-hidden"
-              >
-                {/* Header coloré */}
-                <div 
-                  className="p-4 text-white"
-                  style={{ 
-                    background: `linear-gradient(135deg, ${gameColor} 0%, ${gameColor}dd 100%)` 
-                  }}
-                >
+              <Card key={bet.id} className="border-border bg-card overflow-hidden">
+                <div className="p-4 text-white" style={{ background: `linear-gradient(135deg, ${gameColor} 0%, ${gameColor}dd 100%)` }}>
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <h3 className="font-bold text-lg">{bet.gameName}</h3>
-                      <p className="text-sm text-white/80">
-                        Pari du {formatDate(bet.purchaseDate)}
-                      </p>
+                      <h3 className="font-bold text-lg">{bet.operatorName}</h3>
+                      <p className="text-sm text-white/80">Pari du {formatDate(bet.purchaseDate)}</p>
                     </div>
                     {getStatusBadge(bet.status)}
                   </div>
                 </div>
 
-                {/* Contenu */}
                 <div className="p-4 space-y-4">
-                  {/* Vos Numéros */}
                   <div>
                     <p className="text-xs text-muted-foreground mb-2">Vos numéros :</p>
                     <div className="flex flex-wrap gap-2">
                       {bet.numbers.split(',').map((num, index) => (
-                        <div
-                          key={index}
-                          className="px-3 py-1 rounded-lg font-bold text-[#121212]"
-                          style={{ backgroundColor: gameColor }}
-                        >
+                        <div key={index} className="px-3 py-1 rounded-lg font-bold text-[#121212]" style={{ backgroundColor: gameColor }}>
                           {num.trim()}
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  {/* Numéros Gagnants (si tirage archivé) */}
-                  {bet.winningNumbers && (
+                  {bet.winningNumbers && bet.winningNumbers.length > 0 && (
                     <>
                       <Separator />
                       <div>
                         <p className="text-xs text-muted-foreground mb-2">Numéros gagnants :</p>
                         <div className="flex flex-wrap gap-2">
-                          {(Array.isArray(bet.winningNumbers) 
-                            ? bet.winningNumbers 
-                            : bet.winningNumbers.toString().split(',')
-                          ).map((num, index) => {
+                          {bet.winningNumbers.map((num, index) => {
                             const numStr = num.toString().trim();
                             const isMatch = bet.numbers.split(',').map(n => n.trim()).includes(numStr);
                             return (
                               <div
                                 key={index}
-                                className={`px-3 py-1 rounded-lg font-bold ${
-                                  isMatch
-                                    ? 'text-[#121212] ring-2 ring-offset-2'
-                                    : 'bg-muted text-muted-foreground'
-                                }`}
-                                style={isMatch ? { 
-                                  backgroundColor: gameColor,
-                                  ringColor: gameColor
-                                } : {}}
+                                className={`px-3 py-1 rounded-lg font-bold ${isMatch ? 'text-[#121212] ring-2 ring-offset-2' : 'bg-muted text-muted-foreground'}`}
+                                style={isMatch ? { backgroundColor: gameColor, ringColor: gameColor } : {}}
                               >
                                 {numStr}
                               </div>
@@ -283,16 +206,13 @@ export function BetHistory({ userId }: BetHistoryProps) {
 
                   <Separator />
 
-                  {/* Infos du Tirage */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-sm">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <div>
                           <p className="text-xs text-muted-foreground">Date du tirage</p>
-                          <p className="font-semibold text-foreground">
-                            {new Date(bet.drawDate).toLocaleDateString('fr-FR')}
-                          </p>
+                          <p className="font-semibold text-foreground">{new Date(bet.drawDate).toLocaleDateString('fr-FR')}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
@@ -303,15 +223,12 @@ export function BetHistory({ userId }: BetHistoryProps) {
                         </div>
                       </div>
                     </div>
-
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-sm">
                         <TrendingDown className="h-4 w-4 text-muted-foreground" />
                         <div>
                           <p className="text-xs text-muted-foreground">Mise</p>
-                          <p className="font-semibold text-foreground">
-                            {bet.betAmount.toLocaleString('fr-FR')} F
-                          </p>
+                          <p className="font-semibold text-foreground">{bet.betAmount.toLocaleString('fr-FR')} F</p>
                         </div>
                       </div>
                       {bet.winAmount && bet.winAmount > 0 && (
@@ -319,9 +236,7 @@ export function BetHistory({ userId }: BetHistoryProps) {
                           <TrendingUp className="h-4 w-4 text-[#00A651]" />
                           <div>
                             <p className="text-xs text-muted-foreground">Gain</p>
-                            <p className="font-semibold text-[#00A651]">
-                              + {bet.winAmount.toLocaleString('fr-FR')} F
-                            </p>
+                            <p className="font-semibold text-[#00A651]">+ {bet.winAmount.toLocaleString('fr-FR')} F</p>
                           </div>
                         </div>
                       )}
