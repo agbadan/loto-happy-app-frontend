@@ -12,19 +12,21 @@ import { AdminPanel } from "./components/AdminPanel";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { Toaster } from "./components/ui/sonner";
 import { useAuth } from "./contexts/AuthContext";
-import { User } from "./utils/authAPI";
 
 type Screen = 'login' | 'password' | 'registration' | 'dashboard' | 'reseller-dashboard' | 'admin-panel' | 'game' | 'profile' | 'resellers' | 'results';
 
 export default function App() {
-  const { user, isLoading, logout, refreshUser } = useAuth();
+  const { user, isLoading, logout } = useAuth();
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
   const [selectedGame, setSelectedGame] = useState<string>('');
+  
+  // --- CORRECTION MAJEURE : Simplification des états temporaires ---
+  const [loginIdentifier, setLoginIdentifier] = useState<string>('');
+  // On garde ceux pour l'inscription car ils sont plus complexes
   const [tempPhoneNumber, setTempPhoneNumber] = useState<string>('');
   const [tempCountryCode, setTempCountryCode] = useState<string>('');
   const [tempGoogleEmail, setTempGoogleEmail] = useState<string>('');
   const [tempGoogleName, setTempGoogleName] = useState<string>('');
-  const [rechargeAmount, setRechargeAmount] = useState<number>(0);
 
   const playBalance = user?.balanceGame ?? 0;
   const winningsBalance = user?.balanceWinnings ?? 0;
@@ -34,7 +36,7 @@ export default function App() {
       if (user) {
         if (user.role === 'reseller') {
           setCurrentScreen('reseller-dashboard');
-        } else if (user.role === 'admin') {
+        } else if (user.role.includes('Admin')) { // Gère 'Super Admin', 'Admin du Jeu', etc.
           setCurrentScreen('admin-panel');
         } else {
           setCurrentScreen('dashboard');
@@ -49,15 +51,10 @@ export default function App() {
     logout();
     setCurrentScreen('login');
   };
-  
-  const handleLogin = () => {
-    // The context now handles the user state, so we just need to navigate.
-    // The useEffect above will handle the navigation.
-  };
 
-  const handleNavigateToPassword = (phoneNumber: string, countryCode: string) => {
-    setTempPhoneNumber(phoneNumber);
-    setTempCountryCode(countryCode);
+  // --- CORRECTION DE LA LOGIQUE DE NAVIGATION ---
+  const handleNavigateToPassword = (identifier: string) => {
+    setLoginIdentifier(identifier); // On stocke l'identifiant propre
     setCurrentScreen('password');
   };
 
@@ -77,6 +74,10 @@ export default function App() {
   const handleBackToLogin = () => {
     setCurrentScreen('login');
   };
+  
+  const handleBackToDashboard = () => {
+    setCurrentScreen('dashboard');
+  };
 
   const handleNavigateToGame = (drawId: string) => {
     setSelectedGame(drawId);
@@ -87,19 +88,20 @@ export default function App() {
     setCurrentScreen('profile');
   };
 
-  const handleBackToDashboard = () => {
-    setCurrentScreen('dashboard');
-  };
-
+  // Ce composant est affiché pendant que le AuthContext vérifie le token
   if (isLoading) {
-    return <div>Loading...</div>; // Or a proper spinner component
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#121212', color: 'white' }}>
+        Chargement de votre session...
+      </div>
+    );
   }
 
+  // --- LE JSX CI-DESSOUS EST MODIFIÉ POUR UTILISER LA NOUVELLE LOGIQUE ---
   return (
     <ThemeProvider>
       {currentScreen === 'login' && (
         <LoginScreen 
-          onLogin={handleLogin}
           onNavigateToPassword={handleNavigateToPassword}
           onNavigateToRegistration={handleNavigateToRegistration}
         />
@@ -107,11 +109,7 @@ export default function App() {
       
       {currentScreen === 'password' && (
         <PasswordLoginScreen
-          phoneNumber={tempPhoneNumber}
-          countryCode={tempCountryCode}
-          onLogin={handleLogin}
-          onLoginAsReseller={() => setCurrentScreen('reseller-dashboard')}
-          onLoginAsAdmin={() => setCurrentScreen('admin-panel')}
+          identifier={loginIdentifier} // On passe la prop 'identifier'
           onBack={handleBackToLogin}
         />
       )}
@@ -122,7 +120,6 @@ export default function App() {
           countryCode={tempCountryCode}
           googleEmail={tempGoogleEmail}
           googleName={tempGoogleName}
-          onRegister={handleLogin}
           onBack={handleBackToLogin}
         />
       )}
@@ -131,7 +128,7 @@ export default function App() {
         <Dashboard
           onNavigateToGame={handleNavigateToGame}
           onNavigateToProfile={handleNavigateToProfile}
-          onNavigateToResellers={() => {}}
+          onNavigateToResellers={() => setCurrentScreen('resellers')}
           onNavigateToResults={() => setCurrentScreen('results')}
           playBalance={playBalance}
           winningsBalance={winningsBalance}
@@ -146,7 +143,7 @@ export default function App() {
           onBack={handleBackToDashboard}
           onNavigateToProfile={handleNavigateToProfile}
           playBalance={playBalance}
-          onPlaceBet={() => false}
+          onPlaceBet={() => {}}
         />
       )}
       
@@ -156,7 +153,7 @@ export default function App() {
           playBalance={playBalance}
           winningsBalance={winningsBalance}
           onRecharge={() => {}}
-          onConvertWinnings={() => false}
+          onConvertWinnings={() => {}}
           onLogout={handleLogout}
         />
       )}
@@ -164,10 +161,8 @@ export default function App() {
       {currentScreen === 'resellers' && user && (
         <ResellersScreen 
           onBack={handleBackToDashboard} 
-          rechargeAmount={rechargeAmount}
           userPhoneNumber={user.phoneNumber}
           playBalance={playBalance}
-          onRecharge={() => setCurrentScreen('dashboard')}
           onProfile={handleNavigateToProfile}
         />
       )}
