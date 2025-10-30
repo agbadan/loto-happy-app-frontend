@@ -17,6 +17,8 @@ import { GoogleAuthModal } from "./GoogleAuthModal";
 import { validatePhoneNumber } from "../utils/auth";
 
 interface LoginScreenProps {
+  // --- CORRECTION DE LA SIGNATURE ---
+  // onNavigateToPassword ne devrait prendre qu'un seul argument : l'identifiant.
   onNavigateToPassword: (identifier: string) => void;
   onNavigateToRegistration: (phoneNumber: string, countryCode: string, googleEmail?: string, googleName?: string) => void;
 }
