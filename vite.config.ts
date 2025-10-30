@@ -3,11 +3,15 @@ import react from '@vitejs/plugin-react-swc';
 import path from 'path';
 
 export default defineConfig({
+  // Définit le chemin de base public lorsque l'application est servie.
+  // '/' garantit que les chemins vers les assets (JS, CSS) sont absolus
+  // par rapport à la racine du domaine, ce qui est crucial pour le déploiement.
+  base: '/',
+
   plugins: [react()],
   resolve: {
     extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
     alias: {
-      // --- Cette section complexe d'alias reste inchangée ---
       'vaul@1.1.2': 'vaul',
       'sonner@2.0.3': 'sonner',
       'recharts@2.15.2': 'recharts',
@@ -56,17 +60,11 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true,
-    // C'est une bonne pratique d'ajouter 'host: true' pour le développement
     host: true,
   },
-  
-  // --- SECTION AJOUTÉE POUR CORRIGER L'ERREUR RENDER ---
   preview: {
-    // Le port sur lequel Render écoutera à l'intérieur du conteneur
     port: 8080,
-    // 'host: true' rend le serveur accessible depuis l'extérieur du conteneur
     host: true,
-    // On autorise explicitement le nom de domaine public de Render
     allowedHosts: [
       'loto-happy-app-frontend.onrender.com'
     ]
