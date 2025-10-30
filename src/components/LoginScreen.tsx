@@ -99,24 +99,29 @@ export function LoginScreen({
     return () => clearTimeout(timeoutId);
   }, [animationMode]);
 
-    const handleContinue = () => {
-        if (!phoneNumber) {
-            toast.error("Veuillez entrer un email ou un numéro de téléphone.");
-            return;
-        }
-    const isEmail = phoneNumber.includes('@');
-    if (isEmail) {
-      onNavigateToPassword(phoneNumber); // On passe l'email à l'écran de mot de passe
+  const handleContinue = () => {
+    if (!phoneNumber) {
+      toast.error("Veuillez entrer un email ou un numéro de téléphone.");
       return;
     }
+
+    const isEmail = phoneNumber.includes('@');
+
+    if (isEmail) {
+      // Si c'est un email, on le passe directement.
+      onNavigateToPassword(phoneNumber);
+      return;
+    }
+    
+    // Si c'est un numéro de téléphone
     const validation = validatePhoneNumber(phoneNumber, countryCode);
     if (!validation.isValid) {
       toast.error(validation.message || "Numéro de téléphone invalide");
       return;
     }
+    
+    // On construit le numéro complet et on le passe.
     const fullNumber = `${countryCode}${phoneNumber}`;
-    // On passe directement à l'écran de mot de passe.
-    // C'est cet écran qui essaiera de se connecter et saura si l'utilisateur doit s'inscrire ou non.
     onNavigateToPassword(fullNumber);
   };
 
