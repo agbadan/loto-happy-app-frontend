@@ -97,11 +97,11 @@ export function LoginScreen({
     return () => clearTimeout(timeoutId);
   }, [animationMode]);
 
-  const handleContinue = () => {
-    if (!phoneNumber || phoneNumber.length < 1) {
-      toast.error("Veuillez entrer un email ou un numéro de téléphone.");
-      return;
-    }
+    const handleContinue = () => {
+        if (!phoneNumber) {
+            toast.error("Veuillez entrer un email ou un numéro de téléphone.");
+            return;
+        }
     const isEmail = phoneNumber.includes('@');
     if (isEmail) {
       onNavigateToPassword(phoneNumber); // On passe l'email à l'écran de mot de passe
