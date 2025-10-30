@@ -1,0 +1,233 @@
+
+Important ne lis pas les fichier .md
+
+# 🤝 Handoff Technique : Intégration du Backend Live
+
+**À :** IA Développeur Frontend
+**De :** IA Développeur Backend
+**Date :** 30 Octobre 2025
+**Sujet :** Migration de l'application Loto Happy de `localStorage` vers l'API Backend live.
+
+## 1. Résumé Exécutif
+
+Le backend de Loto Happy est désormais **100% fonctionnel et déployé** sur une URL publique temporaire via ngrok. Toutes les données qui étaient précédemment stockées dans le `localStorage` de votre navigateur doivent maintenant être récupérées et envoyées via des appels à cette API REST.
+
+Votre mission est de **refactoriser le code frontend** pour remplacer toutes les interactions avec `localStorage` par des requêtes HTTP vers le backend.
+
+**URL de Base de l'API :**
+`https://together-fresh-alien.ngrok-free.app`
+
+**Note importante :** Cette URL est temporaire. Vous devez la stocker dans une variable d'environnement pour qu'elle soit facilement modifiable.
+
+## 2. Guide d'Implémentation Étape par Étape
+
+### Étape 1 : Configuration de l'Environnement Frontend
+
+1.  Créez un fichier `.env` à la racine de votre projet React.
+2.  Ajoutez-y la variable d'environnement pour l'URL de base de l'API :
+
+    ```
+    REACT_APP_API_BASE_URL="https://together-fresh-alien.ngrok-free.app"
+    ```
+
+3.  Dans votre code (par exemple, dans un fichier de configuration pour Axios ou `fetch`), utilisez cette variable : `const apiBaseUrl = process.env.REACT_APP_API_BASE_URL;`
+
+### Étape 2 : Refactorisation du Flux d'Authentification
+
+C'est le changement le plus important. La gestion de l'utilisateur et de la session n'est plus dans `localStorage`.
+
+#### A. Connexion (`Login`)
+
+**Avant (localStorage) :**
+```javascript
+const user = findUserInLocalStorage(email, password);
+if (user) {
+  localStorage.setItem('lottoHappyUser', JSON.stringify(user));
+  // Redirection
+}
+```
+
+**Après (API) :**
+Remplacez cette logique par un appel `POST` à l'endpoint `/api/auth/login`.
+
+**Attention :** Cet endpoint attend des données au format `application/x-www-form-urlencoded`.
+
+```javascript
+// Utilisation de 'fetch'
+const formData = new URLSearchParams();
+formData.append('username', emailOrPhoneNumber); // L'utilisateur peut se connecter avec email ou téléphone
+formData.append('password', password);
+
+try {
+  const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error('Identifiants incorrects');
+  }
+
+  const data = await response.json(); // { access_token: "...", token_type: "bearer" }
+  
+  // ACTION CRUCIALE : Stockez le 'access_token'
+  // Stockez ce token dans un état global (Contexte, Redux) ou une cookie sécurisée.
+  // NE stockez PAS les informations de l'utilisateur directement.
+  saveTokenToSecureStorage(data.access_token);
+  
+  // Ensuite, récupérez les infos de l'utilisateur avec le token
+  await fetchCurrentUser(data.access_token);
+
+} catch (error) {
+  // Gérer l'erreur de connexion
+}
+```
+
+#### B. Utilisation du Token JWT
+
+Toutes les requêtes vers des endpoints protégés (identifiés par un cadenas 🔒 dans la documentation) DOIVENT inclure le token dans les en-têtes.
+
+**Exemple avec Axios (recommandé) :**
+Créez une instance Axios qui ajoute automatiquement le header.
+
+```javascript
+import axios from 'axios';
+
+const apiClient = axios.create({
+  baseURL: process.env.REACT_APP_API_BASE_URL,
+});
+
+// Intercepteur pour ajouter le token à chaque requête
+apiClient.interceptors.request.use(config => {
+  const token = getTokenFromSecureStorage(); // Votre fonction pour récupérer le token
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export default apiClient;
+```
+
+#### C. Récupérer l'Utilisateur Connecté
+
+**Avant (localStorage) :**
+```javascript
+const user = JSON.parse(localStorage.getItem('lottoHappyUser'));
+```
+
+**Après (API) :**
+Après la connexion, et à chaque rechargement de la page, faites un appel à `GET /api/auth/me` pour récupérer les informations à jour de l'utilisateur.
+
+```javascript
+// en utilisant l'instance Axios configurée
+try {
+  const response = await apiClient.get('/api/auth/me');
+  const user = response.data; // { id, username, email, balanceGame, ... }
+  
+  // Stockez cet objet utilisateur dans votre état global (Contexte, Redux)
+  setCurrentUser(user);
+  
+} catch (error) {
+  // L'utilisateur n'est pas (ou plus) authentifié. Le déconnecter.
+  logout();
+}
+```
+
+### Étape 3 : Remplacement des Appels `localStorage` par des Appels API
+
+Pour chaque fonctionnalité, remplacez la lecture/écriture de `localStorage` par l'appel à l'endpoint correspondant.
+
+-   **Afficher les tirages à venir :**
+    -   **Avant :** `localStorage.getItem('loto_happy_draws')`
+    -   **Après :** `GET /api/draws/upcoming`
+
+-   **Acheter un ticket :**
+    -   **Avant :** `localStorage.setItem('loto_happy_tickets', ...)`
+    -   **Après :** `POST /api/tickets` avec les données du pari.
+
+-   **Voir l'historique des paris :**
+    -   **Avant :** `localStorage.getItem('loto_happy_tickets')`
+    -   **Après :** `GET /api/tickets/me` (qui retourne une liste déjà enrichie et paginée).
+
+-   **Voir l'historique des transactions :**
+    -   **Avant :** `user.playerTransactionHistory` depuis `localStorage`.
+    -   **Après :** `GET /api/players/me/transactions`.
+
+-   **Demander un retrait :**
+    -   **Avant :** `localStorage.setItem('loto_happy_withdrawal_requests', ...)`
+    -   **Après :** `POST /api/withdrawals`.
+
+### Étape 4 : Gestion des États (Chargement, Erreur)
+
+Puisque les appels sont maintenant asynchrones, chaque composant qui récupère des données doit gérer un état de chargement (`loading`) et un état d'erreur (`error`).
+
+**Exemple pour un composant affichant les tirages :**
+```javascript
+const [draws, setDraws] = useState([]);
+const [loading, setLoading] = useState(true);
+const [error, setError] = useState(null);
+
+useEffect(() => {
+  const fetchDraws = async () => {
+    try {
+      setLoading(true);
+      const response = await apiClient.get('/api/draws/upcoming');
+      setDraws(response.data);
+      setError(null);
+    } catch (err) {
+      setError("Impossible de charger les tirages.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  fetchDraws();
+}, []);
+
+if (loading) return <Spinner />;
+if (error) return <ErrorMessage message={error} />;
+return <DrawsList draws={draws} />;
+```
+
+### Étape 5 : Gestion des Erreurs API
+
+Le backend renvoie des erreurs structurées. Utilisez-les pour afficher des messages clairs à l'utilisateur.
+
+```javascript
+// Exemple lors d'un achat de ticket
+try {
+  await apiClient.post('/api/tickets', betData);
+  // Succès
+} catch (error) {
+  if (error.response && error.response.data.detail) {
+    // Récupérer notre format d'erreur standardisé
+    const apiError = error.response.data.detail.error;
+    // apiError = { code: "INSUFFICIENT_BALANCE", message: "..." }
+    displayToast(apiError.message); // Afficher le message à l'utilisateur
+  } else {
+    displayToast("Une erreur inattendue est survenue.");
+  }
+}
+```
+
+## 3. Checklist Finale d'Intégration
+
+-   [ ] La variable `REACT_APP_API_BASE_URL` est configurée et utilisée.
+-   [ ] Le flux de connexion appelle `POST /api/auth/login`, stocke le token, et appelle `GET /api/auth/me`.
+-   [ ] Le flux d'inscription appelle `POST /api/auth/register`.
+-   [ ] Toutes les requêtes protégées envoient le header `Authorization: Bearer {token}`.
+-   [ ] Tous les appels `localStorage.getItem(...)` sont remplacés par des requêtes `GET`.
+-   [ ] Tous les appels `localStorage.setItem(...)` sont remplacés par des requêtes `POST`, `PUT`, ou `DELETE`.
+-   [ ] Les composants gèrent les états `loading` et `error` pendant les appels API.
+-   [ ] Les messages d'erreur retournés par l'API sont affichés à l'utilisateur.
+
+Pour toute question sur le format des données ou les endpoints, veuillez-vous référer aux documents `BACKEND_SPECIFICATIONS.md` et `API_EXAMPLES.md` qui vous ont été fournis initialement.
+
+Bon développement !
+
+**(Fin du document)**
