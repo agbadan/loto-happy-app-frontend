@@ -45,7 +45,7 @@ export const getResellersPage = async (page: number = 1, size: number = 10): Pro
 
 // 2. Créer un nouveau revendeur
 export const createResellerAPI = async (resellerData: CreateResellerPayload): Promise<Reseller> => {
-  const response = await apiClient.post<Reseller>('/api/resellers', resellerData);
+  const response = await apiClient.post<Reseller>('/api/resellers/', resellerData);
   return response.data;
 };
 
