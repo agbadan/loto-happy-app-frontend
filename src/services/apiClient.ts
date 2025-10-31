@@ -19,16 +19,11 @@ const getToken = (): string | null => {
  * - Ajoute le header pour contourner la page d'avertissement de ngrok.
  */
 const apiClient = axios.create({
-  // Utilise la variable d'environnement définie dans le fichier .env du projet frontend.
-  // Assurez-vous que votre fichier .env contient :
-  // REACT_APP_API_BASE_URL=https://votre-url-ngrok.ngrok-free.app
-  baseURL: process.env.REACT_APP_API_BASE_URL,
-  
   // --- CORRECTION APPLIQUÉE ICI ---
-  // On définit des headers par défaut pour toutes les requêtes.
+  // On utilise import.meta.env.VITE_... qui est la méthode de Vite pour lire les variables.
+  baseURL: import.meta.env.VITE_API_BASE_URL,
+  
   headers: {
-    // Ce header est nécessaire pour que les requêtes API vers ngrok
-    // ne soient pas bloquées par la page d'avertissement de ngrok.
     'ngrok-skip-browser-warning': 'true'
   }
 });
