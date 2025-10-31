@@ -3,9 +3,10 @@
 import { useState, useEffect } from "react";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { Toaster } from "./components/ui/sonner";
-import { useAuth } from "./contexts/AuthContext";
+// CORRECTION : On importe le type User pour l'utiliser dans notre fonction de redirection
+import { useAuth, User } from "./contexts/AuthContext";
 
-// Import de tous vos écrans
+// Import de tous tes écrans
 import { Dashboard } from "./components/Dashboard";
 import { GameScreen } from "./components/GameScreen";
 import { ProfileScreen } from "./components/ProfileScreen";
@@ -17,47 +18,51 @@ import { ResultsScreen } from "./components/ResultsScreen";
 import { ResellerDashboard } from "./components/ResellerDashboard";
 import { AdminPanel } from "./components/AdminPanel";
 
-// Le type Screen est conservé avec toutes vos définitions
 type Screen = 'login' | 'password' | 'registration' | 'dashboard' | 'reseller-dashboard' | 'admin-panel' | 'game' | 'profile' | 'resellers' | 'results';
+
+// --- NOUVELLE FONCTION UTILITAIRE POUR UNE REDIRECTION ROBUSTE ---
+const getHomeScreenForUser = (user: User): Screen => {
+  const role = user.role;
+  console.log(`[AUTH] Rôle détecté: ${role}`); // Log pour le débogage
+
+  // On vérifie les rôles les plus privilégiés en premier, de manière insensible à la casse.
+  if (role.toLowerCase().includes('admin')) {
+    return 'admin-panel';
+  }
+  if (role === 'reseller') {
+    return 'reseller-dashboard';
+  }
+  // Par défaut, pour 'player' et tout autre rôle, on redirige vers le dashboard joueur.
+  return 'dashboard';
+};
 
 export default function App() {
   const { user, isLoading, logout } = useAuth();
 
-  // --- ÉTATS ---
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
-  
-  // CORRECTION: Un seul état pour gérer l'identifiant (email/téléphone) à travers le flux d'authentification.
   const [authIdentifier, setAuthIdentifier] = useState<string>('');
-  
-  // Les états spécifiques à vos fonctionnalités sont conservés
   const [selectedGame, setSelectedGame] = useState<string>('');
 
-  // Les variables calculées sont conservées
   const playBalance = user?.balanceGame ?? 0;
   const winningsBalance = user?.balanceWinnings ?? 0;
 
-  // Votre useEffect de redirection par rôle est parfait et reste inchangé.
+  // --- useEffect CORRIGÉ pour utiliser la nouvelle logique ---
   useEffect(() => {
     if (!isLoading) {
       if (user) {
-        if (user.role === 'reseller') {
-          setCurrentScreen('reseller-dashboard');
-        } else if (user.role.includes('Admin')) {
-          setCurrentScreen('admin-panel');
-        } else {
-          setCurrentScreen('dashboard');
-        }
+        // On utilise notre nouvelle fonction pour déterminer où aller.
+        const homeScreen = getHomeScreenForUser(user);
+        setCurrentScreen(homeScreen);
       } else {
+        // Si aucun utilisateur n'est connecté, on retourne à l'écran de login.
         setCurrentScreen('login');
       }
     }
   }, [user, isLoading]);
 
-  // --- GESTIONNAIRES DE NAVIGATION (CORRIGÉS ET SIMPLIFIÉS) ---
-  
+  // --- GESTIONNAIRES DE NAVIGATION (INCHANGÉS) ---
   const handleLogout = () => {
     logout();
-    // La redirection se fera automatiquement via le useEffect ci-dessus.
   };
 
   const handleNavigateToPassword = (identifier: string) => {
@@ -65,7 +70,6 @@ export default function App() {
     setCurrentScreen('password');
   };
 
-  // CORRECTION: Une seule fonction unifiée pour aller à l'écran d'inscription.
   const handleNavigateToRegistration = (identifier: string) => {
     setAuthIdentifier(identifier);
     setCurrentScreen('registration');
@@ -89,7 +93,7 @@ export default function App() {
     setCurrentScreen('profile');
   };
 
-  // Votre écran de chargement est conservé.
+  // L'écran de chargement reste le même.
   if (isLoading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#121212', color: 'white' }}>
@@ -98,13 +102,12 @@ export default function App() {
     );
   }
 
-  // --- AFFICHAGE COMPLET ET CORRIGÉ ---
+  // --- Rendu conditionnel des écrans (logique conservée) ---
   return (
     <ThemeProvider>
       {currentScreen === 'login' && (
         <LoginScreen 
           onNavigateToPassword={handleNavigateToPassword}
-          // L'ancienne prop 'onNavigateToRegistration' est supprimée d'ici pour simplifier le flux.
         />
       )}
       
@@ -112,18 +115,17 @@ export default function App() {
         <PasswordLoginScreen
           identifier={authIdentifier}
           onBack={handleBackToLogin}
-          onNavigateToRegistration={handleNavigateToRegistration} // Utilise la nouvelle fonction unifiée
+          onNavigateToRegistration={handleNavigateToRegistration}
         />
       )}
       
       {currentScreen === 'registration' && (
         <RegistrationScreen
-          prefilledIdentifier={authIdentifier} // Utilise la nouvelle prop unique
+          prefilledIdentifier={authIdentifier}
           onBack={handleBackToLogin}
         />
       )}
       
-      {/* Tous vos autres écrans sont conservés tels quels */}
       {currentScreen === 'dashboard' && user && (
         <Dashboard
           onNavigateToGame={handleNavigateToGame}
