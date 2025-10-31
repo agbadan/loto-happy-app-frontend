@@ -1,9 +1,12 @@
 // src/utils/resellerAPI.ts
+
 import apiClient from '../services/apiClient';
 
-// L'interface complète, basée sur la réponse exacte du backend
+// --- INTERFACES POUR LES REVENDEURS ---
+
 export interface Reseller {
-  id: string;
+  _id: string; // L'ID du backend s'appelle '_id'
+  id: string; // L'alias 'id' peut aussi être présent
   username: string;
   email: string;
   phoneNumber: string;
@@ -13,19 +16,10 @@ export interface Reseller {
   lastLogin: string | null;
   balanceGame: number;
   balanceWinnings: number;
-  tokenBalance: number;
+  tokenBalance: number | null;
 }
 
-// L'interface pour la réponse paginée, comme pour les joueurs
-export interface PaginatedResellersResponse {
-  items: Reseller[];
-  total: number;
-  page: number;
-  size: number;
-  pages: number;
-}
-
-// Interface pour la création d'un revendeur, basée sur le modèle ResellerCreate
+// L'interface pour la création d'un revendeur
 interface CreateResellerPayload {
   username: string;
   email: string;
@@ -34,31 +28,44 @@ interface CreateResellerPayload {
   initialTokenBalance?: number; // Optionnel
 }
 
+// --- FONCTIONS API ---
 
-// 1. Lister les revendeurs (avec pagination)
-export const getResellersPage = async (page: number = 1, size: number = 10): Promise<PaginatedResellersResponse> => {
-  const response = await apiClient.get<PaginatedResellersResponse>('/api/resellers/', {
-    params: { page, size }
-  });
-  return response.data;
+/**
+ * 1. Récupère une page de revendeurs.
+ */
+export const getResellersPage = async (page: number = 1, size: number = 10): Promise<Reseller[]> => {
+  try {
+    const response = await apiClient.get<Reseller[]>('/api/resellers/', {
+      params: { page, size }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Erreur lors de la récupération de la page de revendeurs:", error);
+    return [];
+  }
 };
 
-// 2. Créer un nouveau revendeur
+/**
+ * 2. Crée un nouveau revendeur.
+ */
 export const createResellerAPI = async (resellerData: CreateResellerPayload): Promise<Reseller> => {
   const response = await apiClient.post<Reseller>('/api/resellers/', resellerData);
   return response.data;
 };
 
-// 3. Mettre à jour le statut d'un utilisateur (générique)
+/**
+ * 3. Met à jour le statut d'un utilisateur (générique).
+ */
 export const updateUserStatusAPI = async (userId: string, status: 'active' | 'suspended'): Promise<void> => {
   await apiClient.put(`/api/admin/users/${userId}/status`, { status });
 };
 
-// 4. Créditer le solde de jetons d'un revendeur
-export const creditResellerBalanceAPI = async (resellerId: string, amount: number): Promise<void> => {
-  // Le backend attend un montant positif pour créditer.
-  if (amount <= 0) {
-    throw new Error("Le montant à créditer doit être positif.");
-  }
-  await apiClient.put(`/api/resellers/${resellerId}/credit`, { amount });
+/**
+ * 4. Ajuste le solde de jetons d'un revendeur (crédit ou débit).
+ */
+export const adjustResellerBalanceAPI = async (resellerId: string, amount: number, reason: string): Promise<Reseller> => {
+  const endpoint = `/api/admin/resellers/${resellerId}/adjust-balance`;
+  const payload = { amount, reason };
+  const response = await apiClient.post<Reseller>(endpoint, payload);
+  return response.data;
 };
