@@ -4,37 +4,32 @@ import apiClient from './apiClient';
 
 // --- INTERFACES BASÉES SUR L'API FINALE ---
 
-// Interface pour les informations du joueur incluses dans une demande de retrait
 interface WithdrawalPlayerInfo {
     id: string;
     username: string;
     phoneNumber: string;
 }
 
-// Interface pour un objet de demande de retrait, telle que retournée par l'API
 export interface WithdrawalRequest {
   id: string;
   amount: number;
   status: 'pending' | 'approved' | 'rejected';
   requestDate: string;
-  provider: string; // Ajout basé sur le code précédent, à confirmer si présent dans la réponse
-  withdrawalPhoneNumber: string; // Ajout basé sur le code précédent, à confirmer si présent
+  provider: string;
+  withdrawalPhoneNumber: string;
   playerInfo: WithdrawalPlayerInfo;
-  // ... autres champs potentiels comme 'processedDate'
 }
 
-// Interface pour la réponse paginée des demandes de retrait
 export interface PaginatedWithdrawalsResponse {
     total: number;
     items: WithdrawalRequest[];
 }
 
-// Interface pour les statistiques financières
 export interface FinancialStats {
     totalStakes: number;
     totalWinnings: number;
     netProfit: number;
-    totalPlayers: number; // Le backend a confirmé 'totalPlayers'
+    totalPlayers: number;
 }
 
 
@@ -45,10 +40,10 @@ export interface FinancialStats {
  */
 export const getFinancialStatsAPI = async (): Promise<FinancialStats> => {
     try {
-        const response = await apiClient.get<FinancialStats>('/api/admin/financial-stats/global');
+        const response = await apiClient.get<FinancialStats>('/api/admin/financial-stats/global/');
         return response.data;
     } catch (error) {
-        console.error("Erreur lors de la récupération des statistiques financières:", error);
+        console.error("Erreur stats financières:", error);
         throw error;
     }
 };
@@ -60,13 +55,12 @@ export const getAllWithdrawalRequestsAPI = async (
   status: 'pending' | 'approved' | 'rejected'
 ): Promise<PaginatedWithdrawalsResponse> => {
     try {
-        const response = await apiClient.get<PaginatedWithdrawalsResponse>(`/api/admin/withdrawals`, {
-            params: { status } // Le backend a confirmé le paramètre 'status'
+        const response = await apiClient.get<PaginatedWithdrawalsResponse>(`/api/admin/withdrawals/`, {
+            params: { status }
         });
         return response.data;
     } catch (error) {
-        console.error(`Erreur lors de la récupération des demandes (${status}):`, error);
-        // Retourne un objet de pagination vide pour ne pas faire planter l'UI
+        console.error(`Erreur demandes (${status}):`, error);
         return { total: 0, items: [] };
     }
 };
@@ -82,12 +76,12 @@ export const processWithdrawalRequestAPI = async (
     try {
         const payload = action === 'reject' ? { action, reason } : { action };
         const response = await apiClient.post<WithdrawalRequest>(
-            `/api/admin/withdrawals/${withdrawalId}/process`,
+            `/api/admin/withdrawals/${withdrawalId}/process/`,
             payload
         );
         return response.data;
     } catch (error) {
-        console.error(`Erreur lors du traitement de la demande ${withdrawalId}:`, error);
+        console.error(`Erreur traitement demande ${withdrawalId}:`, error);
         throw error;
     }
 };
@@ -103,13 +97,13 @@ export const createWithdrawalRequest = async (requestData: {
   provider: string;
   withdrawalPhoneNumber: string;
 }): Promise<WithdrawalRequest> => {
-  // On ajoute le slash final par cohérence
   const response = await apiClient.post<WithdrawalRequest>('/api/withdrawals/', requestData);
   return response.data;
 };
 
 /**
  * Récupère les demandes de retrait de l'utilisateur connecté (placeholder).
+ * On garde cette fonction car elle est peut-être utilisée ailleurs, même si elle ne fait rien.
  */
 export const getUserWithdrawalRequests = async (): Promise<WithdrawalRequest[]> => {
   console.warn("La fonction getUserWithdrawalRequests n'est pas encore implémentée côté backend.");
