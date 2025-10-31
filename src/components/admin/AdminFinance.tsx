@@ -8,8 +8,56 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../ui/alert-dialog";
 import { toast } from "sonner";
 import { CheckCircle, XCircle, Wallet, Trophy, DollarSign, TrendingUp, Loader2 } from "lucide-react";
-// CORRECTION : On importe depuis notre fichier withdrawalsAPI.ts
 import { getFinancialStatsAPI, getAllWithdrawalRequestsAPI, processWithdrawalRequestAPI, WithdrawalRequest, FinancialStats } from "../../utils/withdrawalsAPI";
+
+const StatCard = ({ title, value, icon: Icon, iconBg, iconColor, isCurrency = true, profitColor }: { title: string, value: number, icon: React.ElementType, iconBg: string, iconColor: string, isCurrency?: boolean, profitColor?: boolean }) => (
+    <Card className="p-4 md:p-6">
+        <div className="flex items-center justify-between">
+            <div>
+                <p className="text-sm text-muted-foreground mb-1">{title}</p>
+                <p className={`text-2xl font-bold ${profitColor ? (value >= 0 ? 'text-green-500' : 'text-red-500') : ''}`}>
+                    {value.toLocaleString('fr-FR')}{isCurrency ? ' F' : ''}
+                </p>
+            </div>
+            <div className={`rounded-full p-3 ${iconBg}`}>
+                <Icon className={`h-6 w-6 ${iconColor}`} />
+            </div>
+        </div>
+    </Card>
+);
+
+const WithdrawalCard = ({ request, onApprove, onReject }: { request: WithdrawalRequest, onApprove: (req: WithdrawalRequest) => void, onReject: (req: WithdrawalRequest) => void }) => {
+    const statusConfig = {
+        pending: { color: 'yellow-500', text: 'En attente' },
+        approved: { color: 'green-500', text: 'Approuvé' },
+        rejected: { color: 'red-500', text: 'Rejeté' }
+    };
+
+    return (
+        <Card key={request.id} className={`p-6 border-l-4 border-l-${statusConfig[request.status].color}`}>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                        <h3 className="font-bold text-lg">{request.username}</h3>
+                        <Badge className={`bg-${statusConfig[request.status].color}/20 text-${statusConfig[request.status].color}`}>{statusConfig[request.status].text}</Badge>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-2 text-sm mt-2">
+                        <span>Montant: <span className="font-semibold">{request.amount.toLocaleString('fr-FR')} F</span></span>
+                        <span>Opérateur: <span className="font-semibold">{request.provider}</span></span>
+                        <span>Numéro: <span className="font-semibold">{request.withdrawalPhoneNumber}</span></span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">{new Date(request.requestDate).toLocaleString('fr-FR')}</p>
+                </div>
+                {request.status === 'pending' && (
+                    <div className="flex gap-2">
+                        <Button size="sm" onClick={() => onApprove(request)} className="bg-green-500 hover:bg-green-600"><CheckCircle className="mr-2 h-4 w-4" />Approuver</Button>
+                        <Button size="sm" variant="outline" onClick={() => onReject(request)} className="border-red-500 text-red-500 hover:bg-red-500/10"><XCircle className="mr-2 h-4 w-4" />Rejeter</Button>
+                    </div>
+                )}
+            </div>
+        </Card>
+    );
+};
 
 export function AdminFinance() {
   const [stats, setStats] = useState<FinancialStats | null>(null);
@@ -39,39 +87,24 @@ export function AdminFinance() {
       setPendingRequests(pendingData);
       setApprovedRequests(approvedData);
       setRejectedRequests(rejectedData);
-    } catch (err) {
-      setError("Impossible de charger les données financières. Vérifiez vos permissions.");
-      console.error(err);
-    } finally {
-      setIsLoading({ stats: false, withdrawals: false });
-    }
+    } catch (err) { setError("Impossible de charger les données financières."); console.error(err); } 
+    finally { setIsLoading({ stats: false, withdrawals: false }); }
   };
 
-  useEffect(() => {
-    fetchAllData();
-  }, []);
+  useEffect(() => { fetchAllData(); }, []);
 
-  const handleApprove = (request: WithdrawalRequest) => {
-    setSelectedRequest(request);
-    setShowApproveDialog(true);
-  };
-
-  const handleReject = (request: WithdrawalRequest) => {
-    setSelectedRequest(request);
-    setShowRejectDialog(true);
-  };
+  const handleApprove = (request: WithdrawalRequest) => { setSelectedRequest(request); setShowApproveDialog(true); };
+  const handleReject = (request: WithdrawalRequest) => { setSelectedRequest(request); setShowRejectDialog(true); };
 
   const confirmProcessRequest = async (action: 'approve' | 'reject') => {
     if (!selectedRequest) return;
-    
     setIsSubmitting(true);
     try {
       await processWithdrawalRequestAPI(selectedRequest.id, action);
-      toast.success(`Demande de retrait ${action === 'approve' ? 'approuvée' : 'rejetée'}.`);
+      toast.success(`Demande ${action === 'approve' ? 'approuvée' : 'rejetée'}.`);
       await fetchAllData();
-    } catch (err: any) {
-      toast.error(err?.response?.data?.detail || "Erreur lors du traitement de la demande.");
-    } finally {
+    } catch (err: any) { toast.error(err?.response?.data?.detail || "Erreur."); } 
+    finally {
       setIsSubmitting(false);
       setShowApproveDialog(false);
       setShowRejectDialog(false);
@@ -79,76 +112,49 @@ export function AdminFinance() {
     }
   };
   
+  const renderTabContent = (requests: WithdrawalRequest[], type: 'pending' | 'approved' | 'rejected') => {
+      const emptyMessages = {
+          pending: { icon: Wallet, text: "Aucune demande de retrait en attente" },
+          approved: { icon: CheckCircle, text: "Aucune demande approuvée" },
+          rejected: { icon: XCircle, text: "Aucune demande rejetée" }
+      };
+      const EmptyIcon = emptyMessages[type].icon;
+      
+      if (requests.length === 0) {
+          return <Card className="p-8 text-center"><EmptyIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" /><p className="text-muted-foreground">{emptyMessages[type].text}</p></Card>;
+      }
+      return requests.map((req) => <WithdrawalCard key={req.id} request={req} onApprove={handleApprove} onReject={handleReject} />);
+  };
+
   return (
     <div className="p-4 md:p-6 lg:p-8">
-      <div className="mb-6 md:mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-foreground">Gestion Financière</h1>
-        <p className="text-sm md:text-base text-muted-foreground">Suivez les statistiques et approuvez les demandes de retrait</p>
-      </div>
-
+      <div className="mb-6 md:mb-8"><h1 className="text-2xl md:text-3xl font-bold">Gestion Financière</h1><p className="text-sm md:text-base text-muted-foreground">Suivez les statistiques et approuvez les demandes de retrait</p></div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-8">
-        {isLoading.stats ? (
-            <Card className="p-6 flex items-center justify-center col-span-full"><Loader2 className="h-6 w-6 animate-spin"/></Card>
-        ) : error ? (
-            <Card className="p-6 text-center text-red-500 col-span-full">{error}</Card>
-        ) : (
+        {isLoading.stats ? <Card className="p-6 flex items-center justify-center col-span-full"><Loader2 className="h-6 w-6 animate-spin"/></Card> : error ? <Card className="p-6 text-center text-red-500 col-span-full">{error}</Card> : (
             <>
-                <Card className="p-4 md:p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground mb-1">Total Mises</p><p className="text-2xl font-bold">{(stats?.totalStakes ?? 0).toLocaleString('fr-FR')} F</p></div><div className="rounded-full bg-[#FF6B00]/10 p-3"><TrendingUp className="h-6 w-6 text-[#FF6B00]" /></div></div></Card>
-                <Card className="p-4 md:p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground mb-1">Gains Distribués</p><p className="text-2xl font-bold">{(stats?.totalWinnings ?? 0).toLocaleString('fr-FR')} F</p></div><div className="rounded-full bg-[#FFD700]/10 p-3"><Trophy className="h-6 w-6 text-[#FFD700]" /></div></div></Card>
-                <Card className="p-4 md:p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground mb-1">Bénéfice Net</p><p className={`text-2xl font-bold ${(stats?.netProfit ?? 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>{(stats?.netProfit ?? 0).toLocaleString('fr-FR')} F</p></div><div className="rounded-full bg-green-500/10 p-3"><DollarSign className="h-6 w-6 text-green-500" /></div></div></Card>
-                <Card className="p-4 md:p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground mb-1">Joueurs Actifs</p><p className="text-2xl font-bold">{(stats?.activePlayers ?? 0)}</p></div></div></Card>
+                <StatCard title="Total Mises" value={stats?.totalStakes ?? 0} icon={TrendingUp} iconBg="bg-[#FF6B00]/10" iconColor="text-[#FF6B00]" />
+                <StatCard title="Gains Distribués" value={stats?.totalWinnings ?? 0} icon={Trophy} iconBg="bg-[#FFD700]/10" iconColor="text-[#FFD700]" />
+                <StatCard title="Bénéfice Net" value={stats?.netProfit ?? 0} icon={DollarSign} iconBg="bg-green-500/10" iconColor="text-green-500" profitColor />
+                <StatCard title="Joueurs Actifs" value={stats?.activePlayers ?? 0} icon={Users} iconBg="bg-blue-500/10" iconColor="text-blue-500" isCurrency={false} />
             </>
         )}
       </div>
-
       <Tabs defaultValue="pending" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3 bg-muted">
           <TabsTrigger value="pending">En attente ({pendingRequests.length})</TabsTrigger>
           <TabsTrigger value="approved">Approuvées ({approvedRequests.length})</TabsTrigger>
           <TabsTrigger value="rejected">Rejetées ({rejectedRequests.length})</TabsTrigger>
         </TabsList>
-        
-        {isLoading.withdrawals ? (
-             <Card className="p-8 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin"/></Card>
-        ) : error && ( // Affiche l'erreur uniquement si les retraits n'ont pas pu charger
-            <Card className="p-8 text-center text-red-500">{error}</Card>
-        ) : (
+        {isLoading.withdrawals ? <Card className="p-8 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin"/></Card> : (
         <>
-        <TabsContent value="pending" className="space-y-4">
-          {pendingRequests.length === 0 ? <Card className="p-8 text-center"><Wallet className="h-12 w-12 mx-auto mb-4 text-muted-foreground" /><p className="text-muted-foreground">Aucune demande de retrait en attente</p></Card> : pendingRequests.map((req) => (
-            <Card key={req.id} className="p-6 border-l-4 border-l-[#FF6B00]">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex-1"><h3 className="font-bold text-lg">{req.username}</h3><div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-2 text-sm mt-2"><span>Montant: <span className="font-semibold">{req.amount.toLocaleString('fr-FR')} F</span></span><span>Opérateur: <span className="font-semibold">{req.provider}</span></span><span>Numéro: <span className="font-semibold">{req.withdrawalPhoneNumber}</span></span></div><p className="text-xs text-muted-foreground mt-2">{new Date(req.requestDate).toLocaleString('fr-FR')}</p></div>
-                <div className="flex gap-2"><Button size="sm" onClick={() => handleApprove(req)} className="bg-green-500 hover:bg-green-600"><CheckCircle className="mr-2 h-4 w-4" />Approuver</Button><Button size="sm" variant="outline" onClick={() => handleReject(req)} className="border-red-500 text-red-500 hover:bg-red-500/10"><XCircle className="mr-2 h-4 w-4" />Rejeter</Button></div>
-              </div>
-            </Card>
-          ))}
-        </TabsContent>
-        <TabsContent value="approved" className="space-y-4">{approvedRequests.length === 0 ? <Card className="p-8 text-center"><CheckCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" /><p className="text-muted-foreground">Aucune demande approuvée</p></Card> : approvedRequests.map((req) => (<Card key={req.id} className="p-6 border-l-4 border-l-green-500">{/* ... JSX pour les demandes approuvées ... */}</Card>))}</TabsContent>
-        <TabsContent value="rejected" className="space-y-4">{rejectedRequests.length === 0 ? <Card className="p-8 text-center"><XCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" /><p className="text-muted-foreground">Aucune demande rejetée</p></Card> : rejectedRequests.map((req) => (<Card key={req.id} className="p-6 border-l-4 border-l-red-500">{/* ... JSX pour les demandes rejetées ... */}</Card>))}</TabsContent>
+            <TabsContent value="pending" className="space-y-4">{renderTabContent(pendingRequests, 'pending')}</TabsContent>
+            <TabsContent value="approved" className="space-y-4">{renderTabContent(approvedRequests, 'approved')}</TabsContent>
+            <TabsContent value="rejected" className="space-y-4">{renderTabContent(rejectedRequests, 'rejected')}</TabsContent>
         </>
         )}
       </Tabs>
-      
-      <AlertDialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
-          <AlertDialogContent>
-              <AlertDialogHeader><AlertDialogTitle>Approuver le retrait ?</AlertDialogTitle><AlertDialogDescription>Confirmez l'approbation du retrait de <strong>{selectedRequest?.amount.toLocaleString('fr-FR')} F</strong> pour <strong>{selectedRequest?.username}</strong> vers le numéro <strong>{selectedRequest?.withdrawalPhoneNumber}</strong>.</AlertDialogDescription></AlertDialogHeader>
-              <AlertDialogFooter>
-                  <AlertDialogCancel disabled={isSubmitting}>Annuler</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => confirmProcessRequest('approve')} disabled={isSubmitting} className="bg-green-500 hover:bg-green-600">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Approuver</AlertDialogAction>
-              </AlertDialogFooter>
-          </AlertDialogContent>
-      </AlertDialog>
-      
-      <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-          <AlertDialogContent>
-              <AlertDialogHeader><AlertDialogTitle>Rejeter le retrait ?</AlertDialogTitle><AlertDialogDescription>Confirmez le rejet du retrait de <strong>{selectedRequest?.amount.toLocaleString('fr-FR')} F</strong> pour <strong>{selectedRequest?.username}</strong>.</AlertDialogDescription></AlertDialogHeader>
-              <AlertDialogFooter>
-                  <AlertDialogCancel disabled={isSubmitting}>Annuler</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => confirmProcessRequest('reject')} disabled={isSubmitting} className="bg-red-500 hover:bg-red-500">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Rejeter</AlertDialogAction>
-              </AlertDialogFooter>
-          </AlertDialogContent>
-      </AlertDialog>
+      <AlertDialog open={showApproveDialog} onOpenChange={setShowApproveDialog}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Approuver le retrait ?</AlertDialogTitle><AlertDialogDescription>Confirmez l'approbation de <strong>{selectedRequest?.amount.toLocaleString('fr-FR')} F</strong> pour <strong>{selectedRequest?.username}</strong> vers le <strong>{selectedRequest?.withdrawalPhoneNumber}</strong>.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={isSubmitting}>Annuler</AlertDialogCancel><AlertDialogAction onClick={() => confirmProcessRequest('approve')} disabled={isSubmitting} className="bg-green-500 hover:bg-green-600">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Approuver</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+      <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Rejeter le retrait ?</AlertDialogTitle><AlertDialogDescription>Confirmez le rejet de la demande de <strong>{selectedRequest?.amount.toLocaleString('fr-FR')} F</strong> pour <strong>{selectedRequest?.username}</strong>.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={isSubmitting}>Annuler</AlertDialogCancel><AlertDialogAction onClick={() => confirmProcessRequest('reject')} disabled={isSubmitting} className="bg-red-500 hover:bg-red-500">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Rejeter</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     </div>
   );
 }
