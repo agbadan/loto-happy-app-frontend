@@ -1,4 +1,11 @@
+// src/App.tsx
+
 import { useState, useEffect } from "react";
+import { ThemeProvider } from "./components/ThemeProvider";
+import { Toaster } from "./components/ui/sonner";
+import { useAuth } from "./contexts/AuthContext";
+
+// Import de tous vos écrans
 import { Dashboard } from "./components/Dashboard";
 import { GameScreen } from "./components/GameScreen";
 import { ProfileScreen } from "./components/ProfileScreen";
@@ -9,27 +16,27 @@ import { ResellersScreen } from "./components/ResellersScreen";
 import { ResultsScreen } from "./components/ResultsScreen";
 import { ResellerDashboard } from "./components/ResellerDashboard";
 import { AdminPanel } from "./components/AdminPanel";
-import { ThemeProvider } from "./components/ThemeProvider";
-import { Toaster } from "./components/ui/sonner";
-import { useAuth } from "./contexts/AuthContext";
 
+// Le type Screen est conservé avec toutes vos définitions
 type Screen = 'login' | 'password' | 'registration' | 'dashboard' | 'reseller-dashboard' | 'admin-panel' | 'game' | 'profile' | 'resellers' | 'results';
 
 export default function App() {
   const { user, isLoading, logout } = useAuth();
-  const [currentScreen, setCurrentScreen] = useState<Screen>('login');
-  const [selectedGame, setSelectedGame] = useState<string>('');
-  
-  const [loginIdentifier, setLoginIdentifier] = useState<string>('');
-  
-  const [tempPhoneNumber, setTempPhoneNumber] = useState<string>('');
-  const [tempCountryCode, setTempCountryCode] = useState<string>('');
-  const [tempGoogleEmail, setTempGoogleEmail] = useState<string>('');
-  const [tempGoogleName, setTempGoogleName] = useState<string>('');
 
+  // --- ÉTATS ---
+  const [currentScreen, setCurrentScreen] = useState<Screen>('login');
+  
+  // CORRECTION: Un seul état pour gérer l'identifiant (email/téléphone) à travers le flux d'authentification.
+  const [authIdentifier, setAuthIdentifier] = useState<string>('');
+  
+  // Les états spécifiques à vos fonctionnalités sont conservés
+  const [selectedGame, setSelectedGame] = useState<string>('');
+
+  // Les variables calculées sont conservées
   const playBalance = user?.balanceGame ?? 0;
   const winningsBalance = user?.balanceWinnings ?? 0;
 
+  // Votre useEffect de redirection par rôle est parfait et reste inchangé.
   useEffect(() => {
     if (!isLoading) {
       if (user) {
@@ -46,57 +53,26 @@ export default function App() {
     }
   }, [user, isLoading]);
 
+  // --- GESTIONNAIRES DE NAVIGATION (CORRIGÉS ET SIMPLIFIÉS) ---
+  
   const handleLogout = () => {
     logout();
-    setCurrentScreen('login');
+    // La redirection se fera automatiquement via le useEffect ci-dessus.
   };
 
   const handleNavigateToPassword = (identifier: string) => {
-    setLoginIdentifier(identifier);
+    setAuthIdentifier(identifier);
     setCurrentScreen('password');
   };
 
-  const handleNavigateToRegistration = (
-    phoneNumber: string,
-    countryCode: string,
-    googleEmail?: string,
-    googleName?: string
-  ) => {
-    setTempPhoneNumber(phoneNumber);
-    setTempCountryCode(countryCode);
-    setTempGoogleEmail(googleEmail || '');
-    setTempGoogleName(googleName || '');
-    setCurrentScreen('registration');
-  };
-
-  // --- LOGIQUE DE REDIRECTION CORRIGÉE ET COMPLÉTÉE ---
-  const handleNavigateToRegistrationFromPassword = (identifier: string) => {
-    let phone = '';
-    let code = '';
-    let email = '';
-
-    if (identifier.includes('@')) {
-      // Si l'identifiant est un email, on le pré-remplit.
-      email = identifier;
-    } else if (identifier.startsWith('+')) {
-      // Si c'est un numéro, on essaie de le décomposer.
-      // Hypothèse : les codes pays font 4 caractères (ex: +228).
-      code = identifier.substring(0, 4);
-      phone = identifier.substring(4);
-    } else {
-      // Cas peu probable (ex: email sans '@'), on ne pré-remplit rien
-      // pour que l'utilisateur puisse corriger.
-      console.warn("Identifiant inattendu pour la redirection vers l'inscription:", identifier);
-    }
-    
-    setTempPhoneNumber(phone);
-    setTempCountryCode(code);
-    setTempGoogleEmail(email);
-    setTempGoogleName(''); // Pas de nom dans ce flux
+  // CORRECTION: Une seule fonction unifiée pour aller à l'écran d'inscription.
+  const handleNavigateToRegistration = (identifier: string) => {
+    setAuthIdentifier(identifier);
     setCurrentScreen('registration');
   };
 
   const handleBackToLogin = () => {
+    setAuthIdentifier('');
     setCurrentScreen('login');
   };
   
@@ -113,6 +89,7 @@ export default function App() {
     setCurrentScreen('profile');
   };
 
+  // Votre écran de chargement est conservé.
   if (isLoading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#121212', color: 'white' }}>
@@ -121,33 +98,32 @@ export default function App() {
     );
   }
 
+  // --- AFFICHAGE COMPLET ET CORRIGÉ ---
   return (
     <ThemeProvider>
       {currentScreen === 'login' && (
         <LoginScreen 
           onNavigateToPassword={handleNavigateToPassword}
-          onNavigateToRegistration={handleNavigateToRegistration}
+          // L'ancienne prop 'onNavigateToRegistration' est supprimée d'ici pour simplifier le flux.
         />
       )}
       
       {currentScreen === 'password' && (
         <PasswordLoginScreen
-          identifier={loginIdentifier}
+          identifier={authIdentifier}
           onBack={handleBackToLogin}
-          onNavigateToRegistration={handleNavigateToRegistrationFromPassword}
+          onNavigateToRegistration={handleNavigateToRegistration} // Utilise la nouvelle fonction unifiée
         />
       )}
       
       {currentScreen === 'registration' && (
         <RegistrationScreen
-          phoneNumber={tempPhoneNumber}
-          countryCode={tempCountryCode}
-          googleEmail={tempGoogleEmail}
-          googleName={tempGoogleName}
+          prefilledIdentifier={authIdentifier} // Utilise la nouvelle prop unique
           onBack={handleBackToLogin}
         />
       )}
       
+      {/* Tous vos autres écrans sont conservés tels quels */}
       {currentScreen === 'dashboard' && user && (
         <Dashboard
           onNavigateToGame={handleNavigateToGame}

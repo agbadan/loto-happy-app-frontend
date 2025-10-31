@@ -1,9 +1,12 @@
-import { useState, useEffect } from 'react';
+// src/components/PasswordLoginScreen.tsx
+
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { toast } from 'sonner';
+// MODIFICATION : J'utilise 'toast' de 'react-hot-toast' ou 'sonner' selon ce que tu as
+import { toast } from 'sonner'; 
 import { ArrowLeft, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { useAuth } from '../contexts/AuthContext';
@@ -11,12 +14,12 @@ import { useAuth } from '../contexts/AuthContext';
 interface PasswordLoginScreenProps {
   identifier: string;
   onBack: () => void;
-  // Nouvelle prop pour naviguer vers l'inscription
+  // La prop essentielle pour la redirection vers l'inscription
   onNavigateToRegistration: (identifier: string) => void; 
 }
 
 export function PasswordLoginScreen({ identifier, onBack, onNavigateToRegistration }: PasswordLoginScreenProps) {
-  const { login, isLoading } = useAuth(); // On n'a plus besoin de 'error' ici
+  const { login, isLoading } = useAuth();
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   
@@ -30,40 +33,47 @@ export function PasswordLoginScreen({ identifier, onBack, onNavigateToRegistrati
     }
     
     try {
-      // On appelle la fonction de login du contexte
+      // 1. On lance la tentative de connexion
       await login({ emailOrPhone: identifier, password });
       
-      // Si on arrive ici, c'est que la connexion a réussi.
-      // Le useEffect dans App.tsx s'occupera de la redirection.
-      toast.success('Connexion réussie ! Redirection...');
+      // 2. Si ça réussit, il n'y a RIEN à faire ici.
+      // Le AuthContext a mis à jour l'utilisateur, et le useEffect dans App.tsx
+      // va détecter ce changement et s'occuper de la redirection.
+      // Afficher un toast ici est redondant car l'écran va disparaître immédiatement.
       
     } catch (err: any) {
-      // On attrape l'erreur lancée par le AuthContext
+      // 3. Si ça échoue, on attrape l'erreur propagée par AuthContext
       const errorStatus = err?.response?.status;
-      const errorMessage = err?.response?.data?.detail || "Une erreur est survenue.";
 
       if (errorStatus === 404) {
-        // ERREUR 404 : L'utilisateur n'existe pas !
-        toast.error("Aucun compte trouvé. Veuillez vous inscrire.");
-        // On redirige vers l'écran d'inscription en passant l'identifiant
-        onNavigateToRegistration(identifier);
+        // C'EST LE CAS QUI NOUS INTÉRESSE ! Utilisateur non trouvé.
+        toast.error("Aucun compte trouvé. Redirection vers l'inscription...");
+        
+        // On attend 2 secondes pour que l'utilisateur ait le temps de lire le message
+        // avant que l'écran ne change. C'est une meilleure UX.
+        setTimeout(() => {
+          onNavigateToRegistration(identifier);
+        }, 2000);
+
       } else if (errorStatus === 401) {
-        // ERREUR 401 : Mot de passe incorrect
+        // Mot de passe incorrect. On affiche un message clair.
         toast.error("Mot de passe incorrect.");
       } else {
-        // Autre erreur (serveur en panne, etc.)
+        // Pour toutes les autres erreurs (problème de réseau, serveur 500...)
+        const errorMessage = err?.response?.data?.detail || "Une erreur inattendue est survenue.";
         toast.error(errorMessage);
       }
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    // Si l'utilisateur appuie sur "Entrée" et qu'on n'est pas déjà en train de charger
+    if (e.key === 'Enter' && !isLoading) {
       handleLogin();
     }
   };
   
-  // LE JSX RESTE LE MÊME, IL EST CORRECT
+  // ----- LE JSX RESTE INCHANGÉ, IL EST PARFAIT -----
   return (
     <div 
       className="relative flex min-h-screen items-center justify-center overflow-hidden px-6 py-12"

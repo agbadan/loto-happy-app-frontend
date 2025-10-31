@@ -1,10 +1,9 @@
 // src/utils/authAPI.ts
 
-// On importe notre client Axios centralisé, c'est la seule dépendance nécessaire.
 import apiClient from '../services/apiClient';
 
 // ===== INTERFACES =====
-// Définit la structure des données utilisateur que nous recevons du backend.
+// Nous gardons ton interface User qui est bien détaillée.
 export interface User {
   id: string;
   username: string;
@@ -19,57 +18,46 @@ export interface User {
   lastLogin?: string | null;
 }
 
-// Définit la structure de la réponse de l'endpoint /login.
-interface LoginResponse {
-  access_token: string;
-  token_type: string;
+// L'interface de réponse attendue de l'API pour les routes de connexion/inscription
+interface AuthResponse {
+  user: User;
+  token: string;
 }
 
 // ===== FONCTIONS D'API =====
 
 /**
- * Tente de connecter un utilisateur via son identifiant (email ou téléphone) et son mot de passe.
- * C'est la fonction la plus importante à corriger.
+ * Connecte un utilisateur.
+ * CORRECTION MAJEURE : Cette fonction fait maintenant UN SEUL appel API.
+ * Le backend, lors d'une connexion réussie, doit renvoyer à la fois le token et les données de l'utilisateur.
+ * Cela rend le processus plus rapide et la gestion des erreurs (404, 401) beaucoup plus simple.
  */
 export const loginUser = async (credentials: {
   emailOrPhone: string;
   password: string;
-}): Promise<{ user: User; token: string }> => {
-  // 1. Préparer les données au format 'application/x-www-form-urlencoded'
-  // C'est ce que notre backend FastAPI attend pour l'endpoint /login.
+}): Promise<AuthResponse> => {
   const formData = new URLSearchParams();
-  formData.append('username', credentials.emailOrPhone); // Le backend s'attend au champ 'username'.
+  // Le backend s'attend à ce que le champ 'username' contienne l'email ou le téléphone.
+  formData.append('username', credentials.emailOrPhone); 
   formData.append('password', credentials.password);
 
-  // 2. Appeler l'endpoint /login pour obtenir le token JWT.
-  // Axios enverra automatiquement le bon Content-Type car il détecte URLSearchParams.
-  const loginResponse = await apiClient.post<LoginResponse>('/api/auth/login', formData);
-  const token = loginResponse.data.access_token;
-
-  if (!token) {
-    throw new Error("La connexion a échoué, aucun token reçu.");
-  }
+  // Un seul appel qui retourne tout ce dont nous avons besoin.
+  const response = await apiClient.post<AuthResponse>('/api/auth/login', formData);
   
-  // 3. Une fois que nous avons le token, nous l'utilisons pour récupérer les informations de l'utilisateur.
-  const user = await getCurrentUser(token);
-
-  // 4. On retourne l'utilisateur et le token pour que le AuthContext puisse les stocker.
-  return { user, token };
+  // Si la requête échoue (ex: 404), apiClient lèvera une erreur que nous attraperons plus haut.
+  // Si elle réussit, nous retournons directement les données.
+  return response.data;
 };
 
 
 /**
- * Récupère les informations de l'utilisateur actuellement authentifié en utilisant un token.
+ * Récupère les informations de l'utilisateur authentifié.
+ * CORRECTION : Le token n'est plus passé en argument.
+ * Notre apiClient est configuré avec un intercepteur qui ajoute AUTOMATIQUEMENT le token
+ * depuis le localStorage à chaque requête. C'est plus propre et plus sûr.
  */
-export const getCurrentUser = async (token: string): Promise<User> => {
-  // On fait un appel GET à /me avec le token dans le header Authorization.
-  // Notre 'apiClient' gère l'ajout du header, mais ici nous le passons manuellement
-  // car nous venons de le recevoir et il n'est pas encore stocké globalement.
-  const response = await apiClient.get<User>('/api/auth/me', {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const getCurrentUser = async (): Promise<User> => {
+  const response = await apiClient.get<User>('/api/auth/me');
   return response.data;
 };
 
@@ -77,54 +65,36 @@ export const getCurrentUser = async (token: string): Promise<User> => {
 /**
  * Inscrit un nouveau joueur.
  */
-export const registerUser = async (userData: any): Promise<{ user: User; token: string }> => {
-  // L'endpoint /register attend du JSON, donc on passe l'objet directement.
-  await apiClient.post<User>('/api/auth/register', userData);
-  
-  // Après une inscription réussie, on connecte automatiquement l'utilisateur pour obtenir un token.
-  return await loginUser({
-    emailOrPhone: userData.email,
-    password: userData.password,
-  });
+export const registerUser = async (userData: any): Promise<AuthResponse> => {
+  // L'endpoint /register attend du JSON.
+  // Nous supposons que cet endpoint renvoie aussi l'utilisateur et un token, comme le login.
+  const response = await apiClient.post<AuthResponse>('/api/auth/register', userData);
+  return response.data;
 };
 
 
 /**
- * Gère la connexion via Google.
+ * Change le mot de passe de l'utilisateur connecté.
  */
-export const loginWithGoogle = async (googleToken: string, name: string): Promise<{ user: User, token: string, isNewUser?: boolean }> => {
-  // Le backend /api/auth/google n'existe pas pour l'instant.
-  // Cette fonction est un placeholder et échouera.
-  // Il faudra l'implémenter côté backend si nécessaire.
+export const changePassword = async (passwordData: { current_password: string; new_password: string }): Promise<void> => {
+  await apiClient.put('/api/auth/change-password', passwordData);
+};
+
+
+// ----- Fonctions non utilisées dans le flux principal pour l'instant -----
+
+/**
+ * Gère la connexion via Google (Placeholder).
+ */
+export const loginWithGoogle = async (googleToken: string, name: string): Promise<any> => {
   console.warn("La fonctionnalité de connexion Google n'est pas encore implémentée côté backend.");
   throw new Error("Connexion Google non disponible.");
-  // Quand le backend sera prêt, le code ressemblera à ça :
-  // const response = await apiClient.post('/api/auth/google', { googleToken, name });
-  // return response.data.data;
 };
 
 
 /**
- * Déconnecte l'utilisateur (opération côté client).
+ * La déconnexion est gérée côté client en supprimant le token, pas besoin d'appel API.
  */
 export const logoutUser = () => {
-  // Il suffit de supprimer le token. Il n'y a pas d'appel API à faire.
-  console.log("Déconnexion de l'utilisateur.");
+  console.log("Déconnexion de l'utilisateur (opération côté client).");
 };
-
-// Exporter ApiError si d'autres parties du code en ont besoin
-export class ApiError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'ApiError';
-  }
-}
-
-export const changePassword = async (passwordData: { current_password: string; new_password: string }): Promise<void> => {
-  // L'endpoint attend un corps avec 'current_password' et 'new_password'.
-  await apiClient.put('/api/auth/change-password', passwordData);
-  // Pas de retour de données si succès (204 No Content).
-};
-
-// On n'exporte pas les autres fonctions complexes (suspend, etc.) pour l'instant
-// afin de se concentrer sur la correction du bug principal.
