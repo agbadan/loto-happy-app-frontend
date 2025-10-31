@@ -120,5 +120,11 @@ export class ApiError extends Error {
   }
 }
 
+export const changePassword = async (passwordData: { current_password: string; new_password: string }): Promise<void> => {
+  // L'endpoint attend un corps avec 'current_password' et 'new_password'.
+  await apiClient.put('/api/auth/change-password', passwordData);
+  // Pas de retour de données si succès (204 No Content).
+};
+
 // On n'exporte pas les autres fonctions complexes (suspend, etc.) pour l'instant
 // afin de se concentrer sur la correction du bug principal.

@@ -15,8 +15,14 @@ import { Label } from "./ui/label";
 import { Switch } from "./ui/switch";
 import { useTheme } from "./ThemeProvider";
 import { useAuth } from "../contexts/AuthContext";
-import { getPlayerTransactionHistory, PlayerTransaction, changePassword as apiChangePassword } from "../utils/authAPI";
+
+// --- IMPORTS CORRIGÉS ---
+import { changePassword as apiChangePassword } from "../utils/authAPI";
+import { getMyTransactionHistory } from "../utils/playerAPI";
+import { PlayerTransaction } from "../utils/transactionsAPI"; // Importer l'interface
 import { createWithdrawalRequest } from "../utils/withdrawalsAPI";
+import { toast } from "sonner";
+
 import { 
   ArrowLeft, 
   Trophy, 
@@ -78,7 +84,8 @@ export function ProfileScreen({ onBack, playBalance, winningsBalance, onRecharge
       if (user) {
         setLoadingTransactions(true);
         try {
-          const history = await getPlayerTransactionHistory();
+          // --- APPEL CORRIGÉ ---
+          const history = await getMyTransactionHistory();
           setTransactions(history);
         } catch (error) {
           toast.error("Impossible de charger l'historique des transactions.");
