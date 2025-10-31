@@ -80,12 +80,12 @@ export function AdminPlayers() {
     setDetailsModal({ isOpen: false, player: null });
   };
 
-  // Le filtrage se fait maintenant sur les données de la page actuelle
-  const filteredPlayers = players.filter(p =>
-    p.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.phoneNumber.includes(searchTerm) ||
-    p.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+// Si 'players' n'est pas encore un tableau, on utilise un tableau vide par défaut
+const filteredPlayers = (players || []).filter(p =>
+  p.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  p.phoneNumber.includes(searchTerm) ||
+  p.email.toLowerCase().includes(searchTerm.toLowerCase())
+);
   
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8">
