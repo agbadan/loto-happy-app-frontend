@@ -1,7 +1,9 @@
 // src/utils/playerAPI.ts
+
 import apiClient from '../services/apiClient';
 
-// L'interface complète, basée sur la réponse exacte du backend
+// --- INTERFACES POUR LES JOUEURS (POUR L'ADMIN) ---
+
 export interface Player {
   id: string;
   username: string;
@@ -16,8 +18,6 @@ export interface Player {
   tokenBalance: number;
 }
 
-// La réponse de l'API est paginée, donc nous définissons un type pour cela
-// (à adapter si le backend renvoie aussi le nombre total de pages, etc.)
 export interface PaginatedPlayersResponse {
   items: Player[];
   total: number;
@@ -26,19 +26,43 @@ export interface PaginatedPlayersResponse {
   pages: number;
 }
 
+// --- FONCTIONS POUR L'ADMIN ---
 
-// La fonction qui récupère une page de joueurs
 export const getPlayersPage = async (page: number = 1, size: number = 10): Promise<PaginatedPlayersResponse> => {
+  const response = await apiClient.get<PaginatedPlayersResponse>('/api/players', {
+    params: { page, size }
+  });
+  return response.data;
+};
+
+
+// --- INTERFACES POUR LES TRANSACTIONS (POUR LE JOUEUR CONNECTÉ) ---
+
+export interface PlayerTransaction {
+  id: string;
+  userId: string;
+  type: 'BET' | 'WIN' | 'RECHARGE' | 'WITHDRAWAL' | 'ADJUSTMENT' | 'REFUND'; // Types possibles
+  description: string;
+  amount: number;
+  balanceAfterGame: number;
+  balanceAfterWinnings: number;
+  date: string; // ISO 8601 format
+  metadata?: { [key: string]: any }; // Objet flexible pour les détails
+}
+
+// --- FONCTIONS POUR LE JOUEUR CONNECTÉ ---
+
+// La fonction que ProfileScreen essaie d'importer, maintenant avec la bonne signature
+export const getMyTransactionHistory = async (page: number = 1, size: number = 20): Promise<PlayerTransaction[]> => {
   try {
-    const response = await apiClient.get<PaginatedPlayersResponse>('/api/players', {
-      params: { // On passe les paramètres de pagination à Axios
-        page,
-        size
-      }
+    const response = await apiClient.get<PlayerTransaction[]>('/api/players/me/transactions', {
+      params: { page, size }
     });
+    // Le backend renvoie directement un tableau, donc on retourne response.data
     return response.data;
   } catch (error) {
-    console.error("Erreur lors de la récupération d'une page de joueurs:", error);
-    throw error; // On propage l'erreur pour que le composant puisse la gérer
+    console.error("Erreur lors de la récupération de l'historique des transactions:", error);
+    // En cas d'erreur, on retourne un tableau vide pour éviter de faire planter le composant
+    return [];
   }
 };
