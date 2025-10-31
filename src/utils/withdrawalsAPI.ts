@@ -5,25 +5,24 @@ import { Withdrawal, FinancialStats } from '../types';
 
 /**
  * Récupère les statistiques financières globales depuis l'API.
- * CORRECTION FINALE: Le backend confirme que l'URL ne doit PAS avoir de slash final.
  */
 export const getGlobalFinancialStats = async (): Promise<FinancialStats> => {
-    const response = await apiClient.get<FinancialStats>('/api/admin/financial-stats/global'); // Slash final retiré
+    const response = await apiClient.get<FinancialStats>('/api/admin/financial-stats/global');
     return response.data;
 };
 
 /**
  * Récupère la liste de toutes les demandes de retrait.
- * NOTE: On garde le slash ici, car cette route fonctionne déjà.
+ * CORRECTION FINALE : La réponse de l'API est un objet { items: [...] }. Nous devons extraire le tableau 'items'.
  */
 export const getWithdrawals = async (): Promise<Withdrawal[]> => {
-    const response = await apiClient.get<Withdrawal[]>('/api/admin/withdrawals/');
-    return response.data;
+    // On s'attend à recevoir une structure comme { items: Withdrawal[] }
+    const response = await apiClient.get<{ items: Withdrawal[] }>('/api/admin/withdrawals/');
+    return response.data.items; // On retourne seulement le tableau contenu dans la clé 'items'
 };
 
 /**
  * Met à jour le statut d'une demande de retrait (approuve ou rejette).
- * NOTE: On garde le slash ici, car cette route fonctionne déjà.
  */
 export const updateWithdrawalStatus = async (
   withdrawalId: number | string,
