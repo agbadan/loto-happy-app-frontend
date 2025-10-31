@@ -29,7 +29,7 @@ export interface PaginatedPlayersResponse {
 // --- FONCTIONS POUR L'ADMIN ---
 
 export const getPlayersPage = async (page: number = 1, size: number = 10): Promise<PaginatedPlayersResponse> => {
-  const response = await apiClient.get<PaginatedPlayersResponse>('/api/players', {
+  const response = await apiClient.get<PaginatedPlayersResponse>('/api/players/', {
     params: { page, size }
   });
   return response.data;

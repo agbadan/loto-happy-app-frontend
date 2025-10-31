@@ -37,7 +37,7 @@ interface CreateResellerPayload {
 
 // 1. Lister les revendeurs (avec pagination)
 export const getResellersPage = async (page: number = 1, size: number = 10): Promise<PaginatedResellersResponse> => {
-  const response = await apiClient.get<PaginatedResellersResponse>('/api/resellers', {
+  const response = await apiClient.get<PaginatedResellersResponse>('/api/resellers/', {
     params: { page, size }
   });
   return response.data;
