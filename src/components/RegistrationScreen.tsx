@@ -50,8 +50,10 @@ export function RegistrationScreen({ prefilledIdentifier, onBack }: Registration
   }, []);
 
 
+// Dans src/components/RegistrationScreen.tsx
+
 const handleRegister = async () => {
-  // --- La validation des champs reste la même ---
+  // --- La validation des champs reste la même, avec une petite correction pour le mot de passe ---
   if (!username || username.length < 3) {
     toast.error("Le nom d'utilisateur doit contenir au moins 3 caractères.");
     return;
@@ -64,8 +66,9 @@ const handleRegister = async () => {
     toast.error("Veuillez entrer un numéro de téléphone valide.");
     return;
   }
-  if (!password || password.length < 6) {
-    toast.error("Le mot de passe doit contenir au moins 6 caractères.");
+  // CORRECTION: Le backend attend 8 caractères minimum pour le mot de passe
+  if (!password || password.length < 8) {
+    toast.error("Le mot de passe doit contenir au moins 8 caractères.");
     return;
   }
   if (password !== confirmPassword) {
@@ -76,23 +79,35 @@ const handleRegister = async () => {
   try {
     const fullPhoneNumber = `${countryCode}${phoneNumber}`;
     
+    // --- LA CORRECTION PRINCIPALE EST ICI ---
+    // On appelle la fonction `register` SANS le champ `role`.
     await register({
       username,
       email,
       phoneNumber: fullPhoneNumber,
       password,
-      role: 'player',
+      // "role: 'player'" a été supprimé !
     });
 
     toast.success(`Compte créé ! Bienvenue ${username} ! 🎉`);
-    // Si succès, la redirection sera gérée automatiquement par App.tsx
+    // Le AuthContext mettra à jour l'utilisateur et App.tsx gérera la redirection.
 
   } catch (err: any) {
-    // --- CORRECTION IMPORTANTE ---
-    // On attrape l'erreur et on affiche un message détaillé à l'utilisateur.
-    const errorMessage = err?.response?.data?.detail || "L'inscription a échoué. Veuillez vérifier vos informations.";
+    // La gestion d'erreur que nous avons mise en place à l'étape précédente est parfaite.
+    // Elle affichera maintenant les messages détaillés du backend comme "Email already registered".
+    const errorData = err?.response?.data;
+    let errorMessage = "L'inscription a échoué. Veuillez vérifier vos informations.";
+
+    if (errorData?.detail) {
+        if (typeof errorData.detail === 'string') {
+            errorMessage = errorData.detail; // ex: "Email déjà utilisé"
+        } else if (Array.isArray(errorData.detail)) {
+            // Pour les erreurs de validation Pydantic
+            errorMessage = `Erreur sur le champ '${errorData.detail[0].loc[1]}': ${errorData.detail[0].msg}`;
+        }
+    }
+    
     toast.error(errorMessage);
-    // L'utilisateur reste sur la page d'inscription pour pouvoir corriger ses erreurs.
   }
 };
 
