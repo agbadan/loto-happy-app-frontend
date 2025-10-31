@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { getPlayersPage, Player, adjustPlayerBalanceAPI } from "../../utils/playerAPI"; 
+import { updateUserStatusAPI } from "../../utils/resellerAPI"; // On peut réutiliser cette fonction générique
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -52,11 +53,19 @@ export function AdminPlayers() {
   const handleNextPage = () => !isLastPage && setCurrentPage(p => p + 1);
   const handlePrevPage = () => currentPage > 1 && setCurrentPage(p => p - 1);
   
-  const handleToggleStatus = (player: Player) => {
-    toast.warning("Fonctionnalité 'Suspendre/Réactiver' non encore connectée à l'API.");
-    // Quand l'API sera prête : await updateUserStatusAPI(player._id, newStatus);
-    setRefreshKey(p => p + 1);
-    setDetailsModal({ isOpen: false, player: null });
+  const handleToggleStatus = async (player: Player) => {
+    const newStatus = player.status === 'active' ? 'suspended' : 'active';
+    setIsSubmitting(true);
+    try {
+      await updateUserStatusAPI(player._id, newStatus);
+      toast.success(`Statut du joueur mis à jour à : ${newStatus}`);
+      setDetailsModal({ isOpen: false, player: null });
+      setRefreshKey(p => p + 1);
+    } catch (err) {
+      toast.error("Échec de la mise à jour du statut.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleAdjustBalance = async (player: Player, balanceType: 'game' | 'winnings') => {
@@ -94,7 +103,7 @@ export function AdminPlayers() {
 
       <Card className="border-border">
         {isLoading ? (
-          <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-[#FFD_700]" /></div>
+          <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-[#FFD700]" /></div>
         ) : error ? (
           <div className="text-center text-red-500 p-8">{error}</div>
         ) : (
@@ -149,7 +158,7 @@ export function AdminPlayers() {
             </div>
           )}
           <DialogFooter className="flex flex-col sm:flex-row gap-2">
-            <Button variant={detailsModal.player?.status === 'suspended' ? 'default' : 'destructive'} size="sm" className="w-full sm:w-auto text-xs md:text-sm" onClick={() => handleToggleStatus(detailsModal.player!)}>{detailsModal.player?.status === 'suspended' ? <><CheckCircle className="h-4 w-4 mr-2" /> Réactiver</> : <><Ban className="h-4 w-4 mr-2" /> Suspendre</>}</Button>
+            <Button variant={detailsModal.player?.status === 'suspended' ? 'default' : 'destructive'} size="sm" className="w-full sm:w-auto text-xs md:text-sm" onClick={() => handleToggleStatus(detailsModal.player!)} disabled={isSubmitting}>{isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin"/>}{detailsModal.player?.status === 'suspended' ? <><CheckCircle className="h-4 w-4 mr-2" /> Réactiver</> : <><Ban className="h-4 w-4 mr-2" /> Suspendre</>}</Button>
             <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs md:text-sm" onClick={() => setDetailsModal({ isOpen: false, player: null })}>Fermer</Button>
           </DialogFooter>
         </DialogContent>
