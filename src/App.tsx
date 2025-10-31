@@ -88,6 +88,24 @@ export default function App() {
     setCurrentScreen('profile');
   };
 
+ // --- NOUVELLE FONCTION DE NAVIGATION ---
+  const handleNavigateToRegistrationFromPassword = (identifier: string) => {
+    // On doit extraire le countryCode et le phoneNumber si c'est un numéro
+    let phone = '';
+    let code = '';
+    if (identifier.startsWith('+')) {
+      // Hypothèse simple, à affiner si besoin
+      code = identifier.substring(0, 4); // ex: +228
+      phone = identifier.substring(4);
+    }
+    setTempPhoneNumber(phone);
+    setTempCountryCode(code);
+    setTempGoogleEmail(''); // Pas d'email Google dans ce flux
+    setTempGoogleName('');
+    setCurrentScreen('registration');
+  };
+
+
   // Ce composant est affiché pendant que le AuthContext vérifie le token
   if (isLoading) {
     return (
@@ -109,8 +127,10 @@ export default function App() {
       
       {currentScreen === 'password' && (
         <PasswordLoginScreen
-          identifier={loginIdentifier} // On passe la prop 'identifier'
+          identifier={loginIdentifier}
           onBack={handleBackToLogin}
+          // On passe la nouvelle fonction de navigation
+          onNavigateToRegistration={handleNavigateToRegistrationFromPassword}
         />
       )}
       
@@ -183,3 +203,5 @@ export default function App() {
     </ThemeProvider>
   );
 }
+
+
