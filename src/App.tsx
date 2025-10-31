@@ -20,9 +20,8 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
   const [selectedGame, setSelectedGame] = useState<string>('');
   
-  // --- CORRECTION MAJEURE : Simplification des états temporaires ---
   const [loginIdentifier, setLoginIdentifier] = useState<string>('');
-  // On garde ceux pour l'inscription car ils sont plus complexes
+  
   const [tempPhoneNumber, setTempPhoneNumber] = useState<string>('');
   const [tempCountryCode, setTempCountryCode] = useState<string>('');
   const [tempGoogleEmail, setTempGoogleEmail] = useState<string>('');
@@ -36,7 +35,7 @@ export default function App() {
       if (user) {
         if (user.role === 'reseller') {
           setCurrentScreen('reseller-dashboard');
-        } else if (user.role.includes('Admin')) { // Gère 'Super Admin', 'Admin du Jeu', etc.
+        } else if (user.role.includes('Admin')) {
           setCurrentScreen('admin-panel');
         } else {
           setCurrentScreen('dashboard');
@@ -52,9 +51,8 @@ export default function App() {
     setCurrentScreen('login');
   };
 
-  // --- CORRECTION DE LA LOGIQUE DE NAVIGATION ---
   const handleNavigateToPassword = (identifier: string) => {
-    setLoginIdentifier(identifier); // On stocke l'identifiant propre
+    setLoginIdentifier(identifier);
     setCurrentScreen('password');
   };
 
@@ -68,6 +66,33 @@ export default function App() {
     setTempCountryCode(countryCode);
     setTempGoogleEmail(googleEmail || '');
     setTempGoogleName(googleName || '');
+    setCurrentScreen('registration');
+  };
+
+  // --- LOGIQUE DE REDIRECTION CORRIGÉE ET COMPLÉTÉE ---
+  const handleNavigateToRegistrationFromPassword = (identifier: string) => {
+    let phone = '';
+    let code = '';
+    let email = '';
+
+    if (identifier.includes('@')) {
+      // Si l'identifiant est un email, on le pré-remplit.
+      email = identifier;
+    } else if (identifier.startsWith('+')) {
+      // Si c'est un numéro, on essaie de le décomposer.
+      // Hypothèse : les codes pays font 4 caractères (ex: +228).
+      code = identifier.substring(0, 4);
+      phone = identifier.substring(4);
+    } else {
+      // Cas peu probable (ex: email sans '@'), on ne pré-remplit rien
+      // pour que l'utilisateur puisse corriger.
+      console.warn("Identifiant inattendu pour la redirection vers l'inscription:", identifier);
+    }
+    
+    setTempPhoneNumber(phone);
+    setTempCountryCode(code);
+    setTempGoogleEmail(email);
+    setTempGoogleName(''); // Pas de nom dans ce flux
     setCurrentScreen('registration');
   };
 
@@ -88,25 +113,6 @@ export default function App() {
     setCurrentScreen('profile');
   };
 
- // --- NOUVELLE FONCTION DE NAVIGATION ---
-  const handleNavigateToRegistrationFromPassword = (identifier: string) => {
-    // On doit extraire le countryCode et le phoneNumber si c'est un numéro
-    let phone = '';
-    let code = '';
-    if (identifier.startsWith('+')) {
-      // Hypothèse simple, à affiner si besoin
-      code = identifier.substring(0, 4); // ex: +228
-      phone = identifier.substring(4);
-    }
-    setTempPhoneNumber(phone);
-    setTempCountryCode(code);
-    setTempGoogleEmail(''); // Pas d'email Google dans ce flux
-    setTempGoogleName('');
-    setCurrentScreen('registration');
-  };
-
-
-  // Ce composant est affiché pendant que le AuthContext vérifie le token
   if (isLoading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#121212', color: 'white' }}>
@@ -115,7 +121,6 @@ export default function App() {
     );
   }
 
-  // --- LE JSX CI-DESSOUS EST MODIFIÉ POUR UTILISER LA NOUVELLE LOGIQUE ---
   return (
     <ThemeProvider>
       {currentScreen === 'login' && (
@@ -129,7 +134,6 @@ export default function App() {
         <PasswordLoginScreen
           identifier={loginIdentifier}
           onBack={handleBackToLogin}
-          // On passe la nouvelle fonction de navigation
           onNavigateToRegistration={handleNavigateToRegistrationFromPassword}
         />
       )}
@@ -203,5 +207,3 @@ export default function App() {
     </ThemeProvider>
   );
 }
-
-
