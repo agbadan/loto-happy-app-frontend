@@ -7,13 +7,11 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Badge } from "../ui/badge";
-// CORRECTION : DialogFooter a été ajouté à cette ligne
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Shield, UserPlus, Edit, Eye, EyeOff, Calendar, Mail, User, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-// Liste des rôles autorisés par le backend
 const ADMIN_ROLES = ['Support Client', 'Admin du Jeu', 'Admin Financier', 'Super Admin'] as const;
 type AdminRole = typeof ADMIN_ROLES[number];
 
@@ -65,7 +63,8 @@ export function AdminAdministrators() {
     if (!selectedAdmin) return;
     setIsSubmitting(true);
     try {
-      await updateAdminRoleAPI(selectedAdmin.id, editRole);
+      // CORRECTION: Utiliser _id
+      await updateAdminRoleAPI(selectedAdmin._id, editRole);
       toast.success("Rôle de l'administrateur mis à jour.");
       await fetchAdmins();
       setEditModalOpen(false);
@@ -79,7 +78,8 @@ export function AdminAdministrators() {
     setEditModalOpen(false);
     toast.info("Mise à jour du statut en cours...");
     try {
-      await updateAdminStatusAPI(admin.id, newStatus);
+      // CORRECTION: Utiliser _id
+      await updateAdminStatusAPI(admin._id, newStatus);
       toast.success("Statut mis à jour avec succès !");
       await fetchAdmins();
     } catch (err) { toast.error("Échec de la mise à jour du statut."); }
@@ -102,7 +102,7 @@ export function AdminAdministrators() {
   };
   
   const formatDate = (dateString: string | null) => {
-    if (!dateString || dateString === 'Jamais connecté') return "Jamais";
+    if (!dateString) return "Jamais";
     try { return new Date(dateString).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } 
     catch { return dateString; }
   };
@@ -122,7 +122,7 @@ export function AdminAdministrators() {
             <thead className="bg-muted"><tr className="border-b border-border"><th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Utilisateur</th><th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider hidden md:table-cell">Email</th><th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Rôle</th><th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider hidden lg:table-cell">Statut</th><th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider hidden xl:table-cell">Dernière connexion</th><th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider">Actions</th></tr></thead>
             <tbody className="divide-y divide-border">
               {admins.map((admin) => (
-                <tr key={admin.id} className="hover:bg-accent/50 transition-colors">
+                <tr key={admin._id} className="hover:bg-accent/50">
                   <td className="px-4 py-4"><div className="flex items-center gap-2"><div><p className="font-medium text-foreground">{admin.username}</p><p className="text-xs text-muted-foreground md:hidden">{admin.email}</p></div></div></td>
                   <td className="px-4 py-4 hidden md:table-cell"><span className="text-sm text-foreground">{admin.email}</span></td>
                   <td className="px-4 py-4"><Badge className={`${getRoleBadgeColor(admin.role)} text-white`}>{admin.role}</Badge></td>
@@ -138,8 +138,8 @@ export function AdminAdministrators() {
       <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
         <DialogContent className="max-w-md"><DialogHeader><DialogTitle>Créer un Nouvel Administrateur</DialogTitle><DialogDescription>Remplissez les informations du nouvel administrateur</DialogDescription></DialogHeader>
           <div className="space-y-4 py-4">
-            <div><Label htmlFor="username">Nom d'utilisateur</Label><Input id="username" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} placeholder="Ex: Jean Dupont" className="mt-1" /></div>
-            <div><Label htmlFor="email">Email</Label><Input id="email" type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="admin@example.com" className="mt-1" /></div>
+            <div><Label htmlFor="username">Nom d'utilisateur</Label><Input id="username" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} className="mt-1" /></div>
+            <div><Label htmlFor="email">Email</Label><Input id="email" type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className="mt-1" /></div>
             <div><Label htmlFor="password">Mot de passe</Label><div className="relative mt-1"><Input id="password" type={showPassword ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Minimum 8 caractères" /><button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div></div>
             <div><Label htmlFor="role">Assigner un Rôle</Label><Select value={newRole} onValueChange={(value: AdminRole) => setNewRole(value)}><SelectTrigger className="mt-1"><SelectValue /></SelectTrigger><SelectContent>{ADMIN_ROLES.map(role => <SelectItem key={role} value={role}>{role}</SelectItem>)}</SelectContent></Select></div>
           </div>
