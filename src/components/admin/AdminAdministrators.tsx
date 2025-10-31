@@ -7,7 +7,8 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Badge } from "../ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../ui/dialog";
+// CORRECTION : DialogFooter a été ajouté à cette ligne
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Shield, UserPlus, Edit, Eye, EyeOff, Calendar, Mail, User, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -135,8 +136,7 @@ export function AdminAdministrators() {
         </div>
       </Card>
       <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Créer un Nouvel Administrateur</DialogTitle><DialogDescription>Remplissez les informations du nouvel administrateur</DialogDescription></DialogHeader>
+        <DialogContent className="max-w-md"><DialogHeader><DialogTitle>Créer un Nouvel Administrateur</DialogTitle><DialogDescription>Remplissez les informations du nouvel administrateur</DialogDescription></DialogHeader>
           <div className="space-y-4 py-4">
             <div><Label htmlFor="username">Nom d'utilisateur</Label><Input id="username" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} placeholder="Ex: Jean Dupont" className="mt-1" /></div>
             <div><Label htmlFor="email">Email</Label><Input id="email" type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="admin@example.com" className="mt-1" /></div>
@@ -147,8 +147,7 @@ export function AdminAdministrators() {
         </DialogContent>
       </Dialog>
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Modifier: {selectedAdmin?.username}</DialogTitle><DialogDescription>Modifiez les informations de {selectedAdmin?.username}</DialogDescription></DialogHeader>
+        <DialogContent className="max-w-md"><DialogHeader><DialogTitle>Modifier: {selectedAdmin?.username}</DialogTitle><DialogDescription>Modifiez les informations de {selectedAdmin?.username}</DialogDescription></DialogHeader>
           {selectedAdmin && (
             <div className="space-y-4 py-4">
               <div><Label>Nom d'utilisateur</Label><p className="text-sm text-muted-foreground mt-1">{selectedAdmin.username}</p></div>
