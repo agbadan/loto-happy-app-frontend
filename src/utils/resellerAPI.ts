@@ -6,28 +6,23 @@ import apiClient from '../services/apiClient';
 
 export interface Reseller {
   id: string;
-  _id?: string; // Garder par sécurité si l'API est incohérente
+  _id?: string;
   username: string;
   email: string;
   phoneNumber: string;
   role: "reseller";
   status: "active" | "suspended";
   tokenBalance: number | null;
-  // Autres champs que le backend pourrait renvoyer
   createdAt?: string;
   lastLogin?: string | null;
-  balanceGame?: number;
-  balanceWinnings?: number;
 }
 
-// Interface pour la réponse de la recherche de joueur
 export interface FoundPlayer {
     id: string;
     username: string;
     phoneNumber: string;
 }
 
-// Interface pour un élément de l'historique de recharge
 export interface RechargeHistoryItem {
     id: string;
     date: string;
@@ -36,13 +31,11 @@ export interface RechargeHistoryItem {
     resellerBalanceAfter: number;
 }
 
-// Interface pour la réponse paginée de l'historique
 export interface PaginatedRechargeHistory {
     total: number;
     items: RechargeHistoryItem[];
 }
 
-// Interface pour le payload de création de revendeur
 interface CreateResellerPayload {
   username: string;
   email: string;
@@ -52,49 +45,57 @@ interface CreateResellerPayload {
 }
 
 
-// --- FONCTIONS API FINALES ---
+// --- FONCTIONS API FINALES POUR LE REVENDEUR CONNECTÉ ---
 
 /**
  * 1. Crédite le compte d'un joueur.
- * @param playerPhoneNumber Le numéro de téléphone du joueur à créditer.
- * @param amount Le montant à créditer.
- * @returns Un objet contenant un message de succès et les objets mis à jour du revendeur et du joueur.
  */
 export const creditPlayerAccountAPI = async (playerPhoneNumber: string, amount: number) => {
-  const response = await apiClient.post('/api/resellers/me/credit-player', {
-    playerPhoneNumber,
-    amount
-  });
-  return response.data;
+  try {
+    const response = await apiClient.post('/api/resellers/me/credit-player', {
+      playerPhoneNumber,
+      amount
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Erreur lors du crédit du joueur:", error);
+    throw error; // Propage l'erreur pour que le composant l'affiche
+  }
 };
 
 /**
  * 2. Recherche un joueur par son numéro de téléphone.
- * @param phoneNumber Le numéro de téléphone complet (avec indicatif) du joueur.
- * @returns L'objet du joueur trouvé.
  */
 export const findPlayerByPhoneAPI = async (phoneNumber: string): Promise<FoundPlayer> => {
-  const response = await apiClient.get<FoundPlayer>('/api/resellers/find-player-by-phone', {
-    params: { phoneNumber }
-  });
-  return response.data;
+  try {
+    const response = await apiClient.get<FoundPlayer>('/api/resellers/find-player-by-phone', {
+      params: { phoneNumber }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Erreur lors de la recherche du joueur:", error);
+    throw error;
+  }
 };
 
 /**
  * 3. Récupère l'historique des recharges du revendeur connecté.
- * @param skip Le nombre d'éléments à sauter (pour la pagination).
- * @param limit Le nombre maximum d'éléments à retourner.
- * @returns Un objet contenant le total et la liste des transactions.
  */
 export const getResellerHistoryAPI = async (skip: number = 0, limit: number = 20): Promise<PaginatedRechargeHistory> => {
-  const response = await apiClient.get<PaginatedRechargeHistory>('/api/resellers/me/recharge-history', {
-    params: { skip, limit }
-  });
-  return response.data;
+  try {
+    const response = await apiClient.get<PaginatedRechargeHistory>('/api/resellers/me/recharge-history', {
+      params: { skip, limit }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Erreur lors de la récupération de l'historique:", error);
+    // On retourne un objet vide par défaut pour ne pas planter l'UI
+    return { total: 0, items: [] };
+  }
 };
 
 
-// --- FONCTIONS ADMIN (gardées ici pour la cohérence) ---
+// --- FONCTIONS POUR L'ADMIN ---
 
 /**
  * Crée un nouveau revendeur (action d'admin).

@@ -9,21 +9,25 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { useTheme } from "./ThemeProvider";
-import { Wallet, TrendingUp, Users, Search, ShoppingCart, MessageCircle, Phone, Loader2 } from "lucide-react";
+import { Wallet, Search, ShoppingCart, MessageCircle, Phone, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 import { toast } from "sonner";
 import { ResellerProfileSettings } from "./ResellerProfileSettings";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 interface ResellerDashboardProps {
   onLogout: () => void;
 }
 
+const COUNTRIES = [ { code: '+228', name: 'Togo', flag: '🇹🇬' }, { code: '+229', name: 'Bénin', flag: '🇧🇯' }, { code: '+225', name: "Côte d'Ivoire", flag: '🇨🇮' }, { code: '+233', name: 'Ghana', flag: '🇬🇭' }, { code: '+226', name: 'Burkina Faso', flag: '🇧🇫' } ];
+
 export function ResellerDashboard({ onLogout }: ResellerDashboardProps) {
   const { actualTheme } = useTheme();
   const isDark = actualTheme === 'dark';
   
-  const { user: reseller, isLoading: isAuthLoading } = useAuth();
+  const { user: reseller, isLoading: isAuthLoading, refreshUser } = useAuth();
   
+  const [searchCountryCode, setSearchCountryCode] = useState("+228");
   const [searchTerm, setSearchTerm] = useState('');
   const [foundPlayer, setFoundPlayer] = useState<FoundPlayer | null>(null);
   const [isFindingPlayer, setIsFindingPlayer] = useState(false);
@@ -35,53 +39,48 @@ export function ResellerDashboard({ onLogout }: ResellerDashboardProps) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Effet pour rechercher le joueur quand le numéro de téléphone est tapé
   useEffect(() => {
-    if (searchTerm.length >= 8) { // On cherche à partir de 8 chiffres
-      const handler = setTimeout(async () => {
-        setIsFindingPlayer(true);
-        setFoundPlayer(null);
-        try {
-          // On doit ajouter l'indicatif s'il n'est pas là
-          const fullPhoneNumber = searchTerm.startsWith('+') ? searchTerm : `+228${searchTerm}`;
-          const player = await findPlayerByPhoneAPI(fullPhoneNumber);
-          setFoundPlayer(player);
-          toast.success(`Joueur trouvé : ${player.username}`);
-        } catch (error) {
-          setFoundPlayer(null);
-        } finally {
-          setIsFindingPlayer(false);
-        }
-      }, 500); // Délai de 500ms (debounce)
-      return () => clearTimeout(handler);
-    } else {
+    if (searchTerm.trim().length < 8) {
       setFoundPlayer(null);
+      return;
     }
-  }, [searchTerm]);
+    const handler = setTimeout(async () => {
+      setIsFindingPlayer(true);
+      setFoundPlayer(null);
+      try {
+        const fullPhoneNumber = `${searchCountryCode}${searchTerm.trim().replace(/\s/g, '')}`;
+        const player = await findPlayerByPhoneAPI(fullPhoneNumber);
+        setFoundPlayer(player);
+        toast.success(`Joueur trouvé : ${player.username}`);
+      } catch (error) {
+        setFoundPlayer(null);
+      } finally {
+        setIsFindingPlayer(false);
+      }
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchTerm, searchCountryCode]);
   
-  // Effet pour charger l'historique au montage du composant
   useEffect(() => {
     const fetchHistory = async () => {
       setIsHistoryLoading(true);
       try {
-        const response = await getResellerHistoryAPI(0, 5); // On prend les 5 plus récents
+        const response = await getResellerHistoryAPI(0, 5);
         setHistory(response.items);
       } catch (error) {
         console.error("Erreur chargement historique:", error);
+        toast.error("Impossible de charger l'historique des transactions.");
       } finally {
         setIsHistoryLoading(false);
       }
     };
-    fetchHistory();
-  }, []);
+    if (reseller) {
+        fetchHistory();
+    }
+  }, [reseller, isSubmitting]);
 
-  if (isAuthLoading) {
-    return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
-  }
-  
-  if (!reseller || reseller.role !== 'reseller') {
-    return <div className="flex min-h-screen items-center justify-center"><p className="text-muted-foreground">Accès non autorisé</p></div>;
-  }
+  if (isAuthLoading) { return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>; }
+  if (!reseller || reseller.role !== 'reseller') { return <div className="flex min-h-screen items-center justify-center"><p className="text-muted-foreground">Accès non autorisé</p></div>; }
   
   const handleCreditAccount = async () => {
     if (!foundPlayer) return toast.error('Veuillez trouver un joueur valide avant de créditer.');
@@ -94,8 +93,9 @@ export function ResellerDashboard({ onLogout }: ResellerDashboardProps) {
       setSearchTerm('');
       setAmount('');
       setFoundPlayer(null);
-      // On recharge la page pour mettre à jour le solde du revendeur
-      window.location.reload(); 
+      if (refreshUser) {
+        await refreshUser();
+      }
     } catch (err: any) {
       toast.error(err?.response?.data?.detail || "Erreur lors du crédit.");
     } finally {
@@ -131,20 +131,38 @@ export function ResellerDashboard({ onLogout }: ResellerDashboardProps) {
             </div>
             <Button className="mt-3 sm:mt-4 w-full bg-[#FFD700] text-[#121212] hover:bg-[#FFD700]/90" onClick={() => setBuyTokensOpen(true)}><ShoppingCart className="mr-2 h-4 w-4" />Acheter des Jetons</Button>
           </Card>
-          {/* Les autres cartes de stats nécessiteront leurs propres appels API */}
         </div>
+
         <Card className="mb-8 border-border bg-card p-8">
           <h3 className="mb-6 text-2xl font-bold text-foreground">Recharger un Joueur</h3>
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="search">Rechercher un joueur (Numéro)</Label>
-              <div className="relative"><Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" /><Input id="search" type="text" placeholder="Ex: 90123456" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />{isFindingPlayer && <Loader2 className="absolute right-3 top-3 h-5 w-5 animate-spin"/>}</div>
-              {foundPlayer && <p className="text-sm text-green-500">Joueur trouvé : <span className="font-bold">{foundPlayer.username}</span></p>}
+              <div className="flex gap-2">
+                <Select value={searchCountryCode} onValueChange={setSearchCountryCode}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COUNTRIES.map((c) => (<SelectItem key={c.code} value={c.code}><span className="flex items-center gap-2"><span>{c.flag}</span><span>{c.code}</span></span></SelectItem>))}
+                  </SelectContent>
+                </Select>
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                  <Input id="search" type="text" placeholder="Ex: 90123456" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
+                  {isFindingPlayer && <Loader2 className="absolute right-3 top-3 h-5 w-5 animate-spin"/>}
+                </div>
+              </div>
+              {foundPlayer && <p className="mt-2 text-sm text-green-500">Joueur trouvé : <span className="font-bold">{foundPlayer.username}</span></p>}
             </div>
-            <div className="space-y-2"><Label htmlFor="amount">Montant à créditer (F CFA)</Label><Input id="amount" type="number" placeholder="Ex: 5000" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+            <div className="space-y-2">
+              <Label htmlFor="amount">Montant à créditer (F CFA)</Label>
+              <Input id="amount" type="number" placeholder="Ex: 5000" value={amount} onChange={(e) => setAmount(e.target.value)} />
+            </div>
           </div>
           <Button className="mt-6 w-full bg-[#34C759] text-white hover:bg-[#34C759]/90" size="lg" onClick={handleCreditAccount} disabled={isSubmitting || !foundPlayer}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Créditer le compte</Button>
         </Card>
+
         <Card className="border-border bg-card p-6">
           <h3 className="mb-4 text-xl font-bold text-foreground">Transactions Récentes</h3>
           {isHistoryLoading ? (<div className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto"/></div>) 
@@ -152,8 +170,18 @@ export function ResellerDashboard({ onLogout }: ResellerDashboardProps) {
             : (<div className="space-y-3">{history.map((tx) => (<div key={tx.id} className="flex items-center justify-between rounded-lg border border-border p-4" style={{ backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }}><div><p className="font-semibold text-foreground">{tx.playerCredited.username}</p><p className="text-sm text-muted-foreground">{tx.playerCredited.phoneNumber}</p></div><div className="text-right"><p className="font-bold text-[#34C759]">+{Math.abs(tx.amount).toLocaleString('fr-FR')} F</p><p className="text-xs text-muted-foreground">{new Date(tx.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p></div></div>))}</div>)}
         </Card>
       </div>
-
-      <Dialog open={buyTokensOpen} onOpenChange={setBuyTokensOpen}><DialogContent>{/* Contenu inchangé */}</DialogContent></Dialog>
+      
+      <Dialog open={buyTokensOpen} onOpenChange={setBuyTokensOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Acheter des Jetons</DialogTitle><DialogDescription>Contactez l'administration de Lotto Happy pour acheter des jetons</DialogDescription></DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">Pour recharger votre solde de jetons, veuillez contacter notre équipe administrative via les canaux ci-dessous :</p>
+            <div className="space-y-3"><Button className="w-full bg-[#25D366] text-white hover:bg-[#25D366]/90" onClick={handleWhatsAppContact}><MessageCircle className="mr-2 h-5 w-5" />Contacter par WhatsApp</Button><Button variant="outline" className="w-full" onClick={() => window.open('tel:+22890000000')}><Phone className="mr-2 h-5 w-5" />Appeler le Support</Button></div>
+            <div className="rounded-lg border border-border bg-muted p-4"><p className="text-xs text-muted-foreground"><strong>Note :</strong> Les jetons achetés seront crédités sur votre compte après validation du paiement par l'administration.</p></div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
       <ResellerProfileSettings open={profileOpen} onClose={() => setProfileOpen(false)} onLogout={onLogout} />
     </div>
   );

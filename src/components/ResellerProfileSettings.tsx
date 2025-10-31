@@ -1,13 +1,17 @@
+// src/components/ResellerProfileSettings.tsx
+
 import { useState } from "react";
+// CORRECTION : On importe le hook useAuth et la fonction de l'API d'authentification
+import { useAuth } from "../contexts/AuthContext";
+import { changePassword as apiChangePassword } from "../utils/authAPI";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { useTheme } from "./ThemeProvider";
-import { getCurrentUser, changePassword, logoutUser } from "../utils/auth";
-import { toast } from "sonner@2.0.3";
-import { User, Lock, LogOut, Phone, Shield, Palette, Sun, Moon, Monitor, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
+import { User, Lock, LogOut, Phone, Shield, Palette, Sun, Moon, Monitor, Loader2 } from "lucide-react";
 
 interface ResellerProfileSettingsProps {
   open: boolean;
@@ -19,193 +23,98 @@ export function ResellerProfileSettings({ open, onClose, onLogout }: ResellerPro
   const { actualTheme, theme, setTheme } = useTheme();
   const isDark = actualTheme === 'dark';
   
-  const reseller = getCurrentUser();
+  // --- CORRECTION MAJEURE : On utilise le contexte ---
+  const { user: reseller } = useAuth();
   
-  if (!reseller) return null;
-  
-  const handleLogout = () => {
-    logoutUser();
-    toast.success('Déconnexion réussie !');
-    onClose();
-    onLogout();
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Si le composant s'affiche avant que l'utilisateur ne soit chargé, on ne rend rien.
+  if (!reseller) {
+    return null;
+  }
+
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmNewPassword) { return toast.error("Veuillez remplir tous les champs de mot de passe."); }
+    if (newPassword.length < 8) { return toast.error("Le nouveau mot de passe doit faire au moins 8 caractères."); }
+    if (newPassword !== confirmNewPassword) { return toast.error("Les nouveaux mots de passe ne correspondent pas."); }
+    
+    setIsSubmitting(true);
+    try {
+      await apiChangePassword({ current_password: currentPassword, new_password: newPassword });
+      toast.success("Mot de passe mis à jour avec succès !");
+      // On vide les champs et on ferme la modale
+      setCurrentPassword(""); setNewPassword(""); setConfirmNewPassword("");
+      onClose();
+    } catch (err: any) {
+      // On affiche l'erreur spécifique du backend (ex: "Mot de passe actuel incorrect")
+      toast.error(err?.response?.data?.detail || "Échec de la mise à jour du mot de passe.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent 
         className="max-w-md max-h-[90vh] overflow-y-auto scrollbar-visible"
-        style={{
-          backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
-        }}
+        style={{ backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }}
       >
         <DialogHeader>
           <DialogTitle className="text-center text-foreground">Paramètres du Compte</DialogTitle>
-          <DialogDescription className="text-center text-sm text-muted-foreground">Gérez vos informations et sécurité</DialogDescription>
         </DialogHeader>
         
         <div className="space-y-6 py-4">
-          {/* Avatar et Info */}
           <div className="flex flex-col items-center gap-4">
             <Avatar className="h-24 w-24 border-4 border-[#FFD700]">
-              <AvatarFallback 
-                className="text-2xl font-bold"
-                style={{
-                  background: 'linear-gradient(135deg, #FF6B00 0%, #FFD700 100%)',
-                  color: '#FFFFFF',
-                }}
-              >
+              <AvatarFallback className="text-2xl font-bold" style={{ background: 'linear-gradient(135deg, #FF6B00 0%, #FFD700 100%)', color: '#FFFFFF' }}>
                 {reseller.username.substring(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            
             <div className="text-center">
               <h3 className="font-bold text-foreground">{reseller.username}</h3>
               <p className="text-sm text-muted-foreground">Revendeur Agréé</p>
             </div>
           </div>
           
-          {/* Informations du compte */}
           <div className="space-y-4 rounded-lg border border-border p-4">
             <div className="flex items-center gap-3">
-              <div className="rounded-full bg-[#FF6B00]/10 p-2">
-                <User className="h-4 w-4 text-[#FF6B00]" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Nom d'utilisateur</p>
-                <p className="font-semibold text-foreground">{reseller.username}</p>
-              </div>
+              <div className="rounded-full bg-[#FF6B00]/10 p-2"><User className="h-4 w-4 text-[#FF6B00]" /></div>
+              <div><p className="text-xs text-muted-foreground">Nom d'utilisateur</p><p className="font-semibold text-foreground">{reseller.username}</p></div>
             </div>
-            
             <div className="flex items-center gap-3">
-              <div className="rounded-full bg-[#4F00BC]/10 p-2">
-                <Phone className="h-4 w-4 text-[#4F00BC]" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Numéro de téléphone</p>
-                <p className="font-semibold text-foreground">+{reseller.phoneNumber}</p>
-              </div>
+              <div className="rounded-full bg-[#4F00BC]/10 p-2"><Phone className="h-4 w-4 text-[#4F00BC]" /></div>
+              <div><p className="text-xs text-muted-foreground">Numéro de téléphone</p><p className="font-semibold text-foreground">{reseller.phoneNumber}</p></div>
             </div>
-            
             <div className="flex items-center gap-3">
-              <div className="rounded-full bg-[#FFD700]/10 p-2">
-                <Shield className="h-4 w-4 text-[#FFD700]" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Rôle</p>
-                <p className="font-semibold text-foreground">Revendeur Agréé</p>
-              </div>
+              <div className="rounded-full bg-[#FFD700]/10 p-2"><Shield className="h-4 w-4 text-[#FFD700]" /></div>
+              <div><p className="text-xs text-muted-foreground">Rôle</p><p className="font-semibold text-foreground capitalize">{reseller.role}</p></div>
             </div>
           </div>
           
-          {/* Sécurité - Message pour contacter l'administration */}
           <div className="space-y-3 rounded-lg border border-border p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Lock className="h-5 w-5 text-foreground" />
-              <h4 className="font-semibold text-foreground">Sécurité</h4>
-            </div>
-            
-            <div className="flex items-start gap-3 rounded-lg bg-[#FF6B00]/10 p-3 border border-[#FF6B00]/20">
-              <AlertCircle className="h-5 w-5 text-[#FF6B00] flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-sm text-foreground">
-                  Pour changer vos identifiants ou nom de revendeur, veuillez contacter l'administration.
-                </p>
-              </div>
-            </div>
+            <div className="flex items-center gap-2 mb-2"><Lock className="h-5 w-5 text-foreground" /><h4 className="font-semibold text-foreground">Changer le mot de passe</h4></div>
+            <div className="space-y-2"><Label htmlFor="currentPassword">Mot de passe actuel</Label><Input id="currentPassword" type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} /></div>
+            <div className="space-y-2"><Label htmlFor="newPassword">Nouveau mot de passe</Label><Input id="newPassword" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} /></div>
+            <div className="space-y-2"><Label htmlFor="confirmNewPassword">Confirmer le nouveau mot de passe</Label><Input id="confirmNewPassword" type="password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} /></div>
+            <Button onClick={handleChangePassword} disabled={isSubmitting} className="w-full">
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Mettre à jour le mot de passe
+            </Button>
           </div>
           
-          {/* Apparence */}
           <div className="space-y-3 rounded-lg border border-border p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Palette className="h-5 w-5 text-foreground" />
-              <h4 className="font-semibold text-foreground">Apparence</h4>
-            </div>
-            
-            <p className="text-sm text-muted-foreground mb-3">
-              Personnalisez l'apparence de l'application selon vos préférences
-            </p>
-            
-            {/* Grille des options de thème */}
-            <div className="grid grid-cols-1 gap-3">
-              {/* Option Clair */}
-              <button
-                onClick={() => setTheme('light')}
-                className={`flex items-center gap-3 rounded-xl border-2 p-3 transition-all hover:bg-muted/50 ${
-                  theme === 'light'
-                    ? 'border-[#FFD700] bg-[#FFD700]/10'
-                    : 'border-border bg-card'
-                }`}
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#FFD700] to-[#FFA500] flex-shrink-0">
-                  <Sun className="h-5 w-5 text-[#121212]" />
-                </div>
-                <div className="text-left flex-1">
-                  <p className="font-semibold text-foreground">Clair</p>
-                  <p className="text-xs text-muted-foreground">Lumineux et accueillant</p>
-                </div>
-                {theme === 'light' && (
-                  <div className="h-2 w-2 rounded-full bg-[#FFD700]" />
-                )}
-              </button>
-
-              {/* Option Sombre */}
-              <button
-                onClick={() => setTheme('dark')}
-                className={`flex items-center gap-3 rounded-xl border-2 p-3 transition-all hover:bg-muted/50 ${
-                  theme === 'dark'
-                    ? 'border-[#FFD700] bg-[#FFD700]/10'
-                    : 'border-border bg-card'
-                }`}
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#4F00BC] to-[#2D006B] flex-shrink-0">
-                  <Moon className="h-5 w-5 text-white" />
-                </div>
-                <div className="text-left flex-1">
-                  <p className="font-semibold text-foreground">Sombre</p>
-                  <p className="text-xs text-muted-foreground">Confort pour vos yeux</p>
-                </div>
-                {theme === 'dark' && (
-                  <div className="h-2 w-2 rounded-full bg-[#FFD700]" />
-                )}
-              </button>
-
-              {/* Option Automatique */}
-              <button
-                onClick={() => setTheme('auto')}
-                className={`flex items-center gap-3 rounded-xl border-2 p-3 transition-all hover:bg-muted/50 ${
-                  theme === 'auto'
-                    ? 'border-[#FFD700] bg-[#FFD700]/10'
-                    : 'border-border bg-card'
-                }`}
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#FF6B00] to-[#FF8800] flex-shrink-0">
-                  <Monitor className="h-5 w-5 text-white" />
-                </div>
-                <div className="text-left flex-1">
-                  <p className="font-semibold text-foreground">Automatique</p>
-                  <p className="text-xs text-muted-foreground">Suit votre système</p>
-                </div>
-                {theme === 'auto' && (
-                  <div className="h-2 w-2 rounded-full bg-[#FFD700]" />
-                )}
-              </button>
-            </div>
-
-            {/* Informations supplémentaires */}
-            <div className="mt-3 rounded-lg border border-border bg-muted/50 p-2">
-              <p className="text-xs text-muted-foreground">
-                💡 <strong>Conseil :</strong> Le thème automatique s'adapte aux préférences de votre appareil.
-                {theme === 'auto' && ' Actuellement : ' + (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'Sombre' : 'Clair')}
-              </p>
+            <div className="flex items-center gap-2 mb-2"><Palette className="h-5 w-5 text-foreground" /><h4 className="font-semibold text-foreground">Apparence</h4></div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <Button variant={theme === 'light' ? 'default' : 'outline'} onClick={() => setTheme('light')} className="flex items-center gap-2 justify-start"><Sun className="h-4 w-4" /> Clair</Button>
+              <Button variant={theme === 'dark' ? 'default' : 'outline'} onClick={() => setTheme('dark')} className="flex items-center gap-2 justify-start"><Moon className="h-4 w-4" /> Sombre</Button>
+              <Button variant={theme === 'auto' ? 'default' : 'outline'} onClick={() => setTheme('auto')} className="flex items-center gap-2 justify-start"><Monitor className="h-4 w-4" /> Système</Button>
             </div>
           </div>
           
-          {/* Bouton de déconnexion */}
-          <Button
-            onClick={handleLogout}
-            variant="outline"
-            className="w-full border-[#FF3B30] text-[#FF3B30] hover:bg-[#FF3B30] hover:text-white"
-          >
+          <Button onClick={onLogout} variant="destructive" className="w-full">
             <LogOut className="mr-2 h-4 w-4" />
             Se déconnecter
           </Button>
