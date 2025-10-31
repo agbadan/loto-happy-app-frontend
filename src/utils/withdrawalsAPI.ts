@@ -1,154 +1,85 @@
-/**
- * NOUVEAU SYSTÈME DE GESTION DES RETRAITS - API Backend
- * Remplace l'ancien système localStorage
- */
+// src/utils/withdrawalsAPI.ts
 
-import api, { ApiError } from './apiClient';
-import { refreshUserData } from './authAPI';
+import apiClient from './apiClient';
 
-// ===== INTERFACES =====
-
+// ===== INTERFACE =====
+// Définit la structure d'une demande de retrait
 export interface WithdrawalRequest {
   id: string;
   userId: string;
   username: string;
-  phoneNumber: string;
   amount: number;
-  provider: string; // TMoney, Flooz, MTN, Orange, Wave, Moov
+  provider: string; // TMoney, Flooz, etc.
   withdrawalPhoneNumber: string;
   status: 'pending' | 'approved' | 'rejected';
   requestDate: string;
-  processedDate?: string;
-  processedBy?: string;
-  rejectionReason?: string;
+  processedDate?: string | null;
+  processedBy?: string | null;
+  rejectionReason?: string | null; // Ce champ n'est pas dans le backend actuel, mais on le garde
 }
 
-// ===== GESTION DES RETRAITS =====
+// ===== GESTION DES RETRAITS (côté Joueur) =====
 
 /**
- * Créer une demande de retrait
+ * Permet à un joueur de créer une nouvelle demande de retrait.
  */
-export async function createWithdrawalRequest(requestData: {
+export const createWithdrawalRequest = async (requestData: {
   amount: number;
   provider: string;
   withdrawalPhoneNumber: string;
-}): Promise<{
-  withdrawal: WithdrawalRequest;
-  newBalanceWinnings: number;
-}> {
-  try {
-    const result = await api.post<{
-      withdrawal: WithdrawalRequest;
-      new_balance_winnings: number;
-    }>('/api/withdrawals', {
-      amount: requestData.amount,
-      provider: requestData.provider,
-      withdrawal_phone_number: requestData.withdrawalPhoneNumber,
-    });
-
-    // Rafraîchir les données utilisateur (solde de gains mis à jour)
-    await refreshUserData();
-
-    return {
-      withdrawal: result.withdrawal,
-      newBalanceWinnings: result.new_balance_winnings,
-    };
-  } catch (error) {
-    if (error instanceof ApiError) {
-      if (error.code === 'INSUFFICIENT_BALANCE') {
-        throw new Error('Solde de gains insuffisant');
-      }
-      if (error.code === 'WITHDRAWAL_MINIMUM_NOT_MET') {
-        throw new Error('Le montant minimum de retrait est de 1000 F');
-      }
-      throw error;
-    }
-    throw new Error('Erreur lors de la demande de retrait');
-  }
-}
+}): Promise<WithdrawalRequest> => {
+  // Le backend attend 'withdrawalPhoneNumber', pas 'withdrawal_phone_number'
+  const response = await apiClient.post<WithdrawalRequest>('/api/withdrawals', requestData);
+  // Le backend ne renvoie pas le 'newBalanceWinnings', le AuthContext s'en chargera.
+  return response.data;
+};
 
 /**
- * Récupérer toutes les demandes de retrait (admin)
+ * Récupère les demandes de retrait de l'utilisateur connecté.
  */
-export async function getAllWithdrawalRequests(
-  status?: 'pending' | 'approved' | 'rejected'
-): Promise<WithdrawalRequest[]> {
-  try {
-    const endpoint = status 
-      ? `/api/withdrawals?status=${status}`
-      : '/api/withdrawals';
-    
-    return await api.get<WithdrawalRequest[]>(endpoint);
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    throw new Error('Erreur lors de la récupération des demandes de retrait');
-  }
-}
+export const getUserWithdrawalRequests = async (): Promise<WithdrawalRequest[]> => {
+  // Le backend n'a pas de route '/me' pour les retraits.
+  // On va construire cette logique plus tard côté backend si nécessaire.
+  console.warn("La fonction getUserWithdrawalRequests n'est pas encore implémentée côté backend.");
+  return []; // Retourne un tableau vide pour l'instant.
+  // const response = await apiClient.get<WithdrawalRequest[]>('/api/withdrawals/me');
+  // return response.data;
+};
+
+
+// ===== GESTION DES RETRAITS (côté Admin) =====
 
 /**
- * Récupérer les demandes de retrait de l'utilisateur connecté
+ * Récupère toutes les demandes de retrait, filtrées par statut (admin).
  */
-export async function getUserWithdrawalRequests(): Promise<WithdrawalRequest[]> {
-  try {
-    return await api.get<WithdrawalRequest[]>('/api/withdrawals/me');
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    throw new Error('Erreur lors de la récupération de vos demandes de retrait');
-  }
-}
+export const getAllWithdrawalRequests = async (
+  status: 'pending' | 'approved' | 'rejected' = 'pending'
+): Promise<WithdrawalRequest[]> => {
+  const response = await apiClient.get<WithdrawalRequest[]>(`/api/withdrawals`, {
+    params: { status_filter: status } // Le backend attend 'status_filter'
+  });
+  return response.data;
+};
 
 /**
- * Approuver une demande de retrait (admin)
+ * Approuve une demande de retrait (admin).
  */
-export async function approveWithdrawal(
-  withdrawalId: string,
-  notes?: string
-): Promise<WithdrawalRequest> {
-  try {
-    return await api.put<WithdrawalRequest>(
-      `/api/withdrawals/${withdrawalId}/approve`,
-      { notes }
-    );
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    throw new Error('Erreur lors de l\'approbation du retrait');
-  }
-}
+export const approveWithdrawal = async (withdrawalId: string): Promise<WithdrawalRequest> => {
+  const response = await apiClient.put<WithdrawalRequest>(`/api/withdrawals/${withdrawalId}/approve`);
+  return response.data;
+};
 
 /**
- * Rejeter une demande de retrait (admin)
- * Le backend re-crédite automatiquement le solde du joueur
+ * Rejette une demande de retrait (admin).
  */
-export async function rejectWithdrawal(
+export const rejectWithdrawal = async (
   withdrawalId: string,
   reason: string
-): Promise<{
-  withdrawal: WithdrawalRequest;
-  playerRefundedAmount: number;
-  playerNewBalance: number;
-}> {
-  try {
-    return await api.put<{
-      withdrawal: WithdrawalRequest;
-      player_refunded_amount: number;
-      player_new_balance: number;
-    }>(`/api/withdrawals/${withdrawalId}/reject`, {
-      reason,
-    }).then(result => ({
-      withdrawal: result.withdrawal,
-      playerRefundedAmount: result.player_refunded_amount,
-      playerNewBalance: result.player_new_balance,
-    }));
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    throw new Error('Erreur lors du rejet du retrait');
-  }
-}
+): Promise<WithdrawalRequest> => {
+  const response = await apiClient.put<WithdrawalRequest>(
+    `/api/withdrawals/${withdrawalId}/reject`,
+    { reason }
+  );
+  // Le backend ne renvoie que la demande de retrait mise à jour.
+  return response.data;
+};
