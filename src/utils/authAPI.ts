@@ -32,20 +32,20 @@ interface AuthResponse {
  * Le backend, lors d'une connexion réussie, doit renvoyer à la fois le token et les données de l'utilisateur.
  * Cela rend le processus plus rapide et la gestion des erreurs (404, 401) beaucoup plus simple.
  */
+// DANS src/utils/authAPI.ts
+
 export const loginUser = async (credentials: {
   emailOrPhone: string;
   password: string;
-}): Promise<AuthResponse> => {
+}): Promise<{ user: User; token: string }> => {
   const formData = new URLSearchParams();
-  // Le backend s'attend à ce que le champ 'username' contienne l'email ou le téléphone.
   formData.append('username', credentials.emailOrPhone); 
   formData.append('password', credentials.password);
 
-  // Un seul appel qui retourne tout ce dont nous avons besoin.
-  const response = await apiClient.post<AuthResponse>('/api/auth/login', formData);
+  // UN SEUL APPEL qui retourne maintenant tout ce dont on a besoin.
+  const response = await apiClient.post('/api/auth/login', formData);
   
-  // Si la requête échoue (ex: 404), apiClient lèvera une erreur que nous attraperons plus haut.
-  // Si elle réussit, nous retournons directement les données.
+  // On retourne directement les données reçues, qui contiennent maintenant 'user' et 'token'.
   return response.data;
 };
 
