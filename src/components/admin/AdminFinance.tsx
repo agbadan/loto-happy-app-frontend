@@ -6,56 +6,19 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../ui/alert-dialog";
+import { Input } from "../ui/input";
 import { toast } from "sonner";
-import { CheckCircle, XCircle, Wallet, Trophy, DollarSign, TrendingUp, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, Wallet, Trophy, DollarSign, Users, Loader2 } from "lucide-react";
 import { getFinancialStatsAPI, getAllWithdrawalRequestsAPI, processWithdrawalRequestAPI, WithdrawalRequest, FinancialStats } from "../../utils/withdrawalsAPI";
 
-const StatCard = ({ title, value, icon: Icon, iconBg, iconColor, isCurrency = true, profitColor }: { title: string, value: number, icon: React.ElementType, iconBg: string, iconColor: string, isCurrency?: boolean, profitColor?: boolean }) => (
-    <Card className="p-4 md:p-6">
-        <div className="flex items-center justify-between">
-            <div>
-                <p className="text-sm text-muted-foreground mb-1">{title}</p>
-                <p className={`text-2xl font-bold ${profitColor ? (value >= 0 ? 'text-green-500' : 'text-red-500') : ''}`}>
-                    {value.toLocaleString('fr-FR')}{isCurrency ? ' F' : ''}
-                </p>
-            </div>
-            <div className={`rounded-full p-3 ${iconBg}`}>
-                <Icon className={`h-6 w-6 ${iconColor}`} />
-            </div>
-        </div>
-    </Card>
+const StatCard = ({ title, value, icon: Icon, iconBg, iconColor, isCurrency = true, profitColor = false }: { title: string, value: number, icon: React.ElementType, iconBg: string, iconColor: string, isCurrency?: boolean, profitColor?: boolean }) => (
+    <Card className="p-4 md:p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground mb-1">{title}</p><p className={`text-2xl font-bold ${profitColor ? (value >= 0 ? 'text-green-500' : 'text-red-500') : ''}`}>{value.toLocaleString('fr-FR')}{isCurrency ? ' F' : ''}</p></div><div className={`rounded-full p-3 ${iconBg}`}><Icon className={`h-6 w-6 ${iconColor}`} /></div></div></Card>
 );
 
 const WithdrawalCard = ({ request, onApprove, onReject }: { request: WithdrawalRequest, onApprove: (req: WithdrawalRequest) => void, onReject: (req: WithdrawalRequest) => void }) => {
-    const statusConfig = {
-        pending: { color: 'yellow-500', text: 'En attente' },
-        approved: { color: 'green-500', text: 'Approuvé' },
-        rejected: { color: 'red-500', text: 'Rejeté' }
-    };
-
+    const statusConfig = { pending: { color: 'yellow-500', text: 'En attente' }, approved: { color: 'green-500', text: 'Approuvé' }, rejected: { color: 'red-500', text: 'Rejeté' }};
     return (
-        <Card key={request.id} className={`p-6 border-l-4 border-l-${statusConfig[request.status].color}`}>
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-bold text-lg">{request.username}</h3>
-                        <Badge className={`bg-${statusConfig[request.status].color}/20 text-${statusConfig[request.status].color}`}>{statusConfig[request.status].text}</Badge>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-2 text-sm mt-2">
-                        <span>Montant: <span className="font-semibold">{request.amount.toLocaleString('fr-FR')} F</span></span>
-                        <span>Opérateur: <span className="font-semibold">{request.provider}</span></span>
-                        <span>Numéro: <span className="font-semibold">{request.withdrawalPhoneNumber}</span></span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">{new Date(request.requestDate).toLocaleString('fr-FR')}</p>
-                </div>
-                {request.status === 'pending' && (
-                    <div className="flex gap-2">
-                        <Button size="sm" onClick={() => onApprove(request)} className="bg-green-500 hover:bg-green-600"><CheckCircle className="mr-2 h-4 w-4" />Approuver</Button>
-                        <Button size="sm" variant="outline" onClick={() => onReject(request)} className="border-red-500 text-red-500 hover:bg-red-500/10"><XCircle className="mr-2 h-4 w-4" />Rejeter</Button>
-                    </div>
-                )}
-            </div>
-        </Card>
+        <Card key={request.id} className={`p-6 border-l-4 border-l-${statusConfig[request.status].color}`}><div className="flex flex-col md:flex-row md:items-center justify-between gap-4"><div className="flex-1"><div className="flex items-center gap-3 mb-2"><h3 className="font-bold text-lg">{request.playerInfo.username}</h3><Badge className={`bg-${statusConfig[request.status].color}/20 text-${statusConfig[request.status].color}`}>{statusConfig[request.status].text}</Badge></div><div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-2 text-sm mt-2"><span>Montant: <span className="font-semibold">{request.amount.toLocaleString('fr-FR')} F</span></span><span>Opérateur: <span className="font-semibold">{request.provider}</span></span><span>Numéro: <span className="font-semibold">{request.playerInfo.phoneNumber}</span></span></div><p className="text-xs text-muted-foreground mt-2">{new Date(request.requestDate).toLocaleString('fr-FR')}</p></div>{request.status === 'pending' && (<div className="flex gap-2"><Button size="sm" onClick={() => onApprove(request)} className="bg-green-500 hover:bg-green-600"><CheckCircle className="mr-2 h-4 w-4" />Approuver</Button><Button size="sm" variant="outline" onClick={() => onReject(request)} className="border-red-500 text-red-500 hover:bg-red-500/10"><XCircle className="mr-2 h-4 w-4" />Rejeter</Button></div>)}</div></Card>
     );
 };
 
@@ -71,6 +34,7 @@ export function AdminFinance() {
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<WithdrawalRequest | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchAllData = async () => {
@@ -84,9 +48,9 @@ export function AdminFinance() {
         getAllWithdrawalRequestsAPI('rejected'),
       ]);
       setStats(statsData);
-      setPendingRequests(pendingData);
-      setApprovedRequests(approvedData);
-      setRejectedRequests(rejectedData);
+      setPendingRequests(pendingData.items);
+      setApprovedRequests(approvedData.items);
+      setRejectedRequests(rejectedData.items);
     } catch (err) { setError("Impossible de charger les données financières."); console.error(err); } 
     finally { setIsLoading({ stats: false, withdrawals: false }); }
   };
@@ -94,13 +58,15 @@ export function AdminFinance() {
   useEffect(() => { fetchAllData(); }, []);
 
   const handleApprove = (request: WithdrawalRequest) => { setSelectedRequest(request); setShowApproveDialog(true); };
-  const handleReject = (request: WithdrawalRequest) => { setSelectedRequest(request); setShowRejectDialog(true); };
+  const handleReject = (request: WithdrawalRequest) => { setSelectedRequest(request); setRejectionReason(""); setShowRejectDialog(true); };
 
   const confirmProcessRequest = async (action: 'approve' | 'reject') => {
     if (!selectedRequest) return;
+    if (action === 'reject' && !rejectionReason.trim()) { return toast.error("Un motif de rejet est obligatoire."); }
+    
     setIsSubmitting(true);
     try {
-      await processWithdrawalRequestAPI(selectedRequest.id, action);
+      await processWithdrawalRequestAPI(selectedRequest.id, action, rejectionReason);
       toast.success(`Demande ${action === 'approve' ? 'approuvée' : 'rejetée'}.`);
       await fetchAllData();
     } catch (err: any) { toast.error(err?.response?.data?.detail || "Erreur."); } 
@@ -109,20 +75,14 @@ export function AdminFinance() {
       setShowApproveDialog(false);
       setShowRejectDialog(false);
       setSelectedRequest(null);
+      setRejectionReason("");
     }
   };
   
   const renderTabContent = (requests: WithdrawalRequest[], type: 'pending' | 'approved' | 'rejected') => {
-      const emptyMessages = {
-          pending: { icon: Wallet, text: "Aucune demande de retrait en attente" },
-          approved: { icon: CheckCircle, text: "Aucune demande approuvée" },
-          rejected: { icon: XCircle, text: "Aucune demande rejetée" }
-      };
+      const emptyMessages = { pending: { icon: Wallet, text: "Aucune demande de retrait en attente" }, approved: { icon: CheckCircle, text: "Aucune demande approuvée" }, rejected: { icon: XCircle, text: "Aucune demande rejetée" }};
       const EmptyIcon = emptyMessages[type].icon;
-      
-      if (requests.length === 0) {
-          return <Card className="p-8 text-center"><EmptyIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" /><p className="text-muted-foreground">{emptyMessages[type].text}</p></Card>;
-      }
+      if (requests.length === 0) { return <Card className="p-8 text-center"><EmptyIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" /><p className="text-muted-foreground">{emptyMessages[type].text}</p></Card>; }
       return requests.map((req) => <WithdrawalCard key={req.id} request={req} onApprove={handleApprove} onReject={handleReject} />);
   };
 
@@ -135,7 +95,7 @@ export function AdminFinance() {
                 <StatCard title="Total Mises" value={stats?.totalStakes ?? 0} icon={TrendingUp} iconBg="bg-[#FF6B00]/10" iconColor="text-[#FF6B00]" />
                 <StatCard title="Gains Distribués" value={stats?.totalWinnings ?? 0} icon={Trophy} iconBg="bg-[#FFD700]/10" iconColor="text-[#FFD700]" />
                 <StatCard title="Bénéfice Net" value={stats?.netProfit ?? 0} icon={DollarSign} iconBg="bg-green-500/10" iconColor="text-green-500" profitColor />
-                <StatCard title="Joueurs Actifs" value={stats?.activePlayers ?? 0} icon={Users} iconBg="bg-blue-500/10" iconColor="text-blue-500" isCurrency={false} />
+                <StatCard title="Joueurs Actifs" value={stats?.totalPlayers ?? 0} icon={Users} iconBg="bg-blue-500/10" iconColor="text-blue-500" isCurrency={false} />
             </>
         )}
       </div>
@@ -153,8 +113,8 @@ export function AdminFinance() {
         </>
         )}
       </Tabs>
-      <AlertDialog open={showApproveDialog} onOpenChange={setShowApproveDialog}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Approuver le retrait ?</AlertDialogTitle><AlertDialogDescription>Confirmez l'approbation de <strong>{selectedRequest?.amount.toLocaleString('fr-FR')} F</strong> pour <strong>{selectedRequest?.username}</strong> vers le <strong>{selectedRequest?.withdrawalPhoneNumber}</strong>.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={isSubmitting}>Annuler</AlertDialogCancel><AlertDialogAction onClick={() => confirmProcessRequest('approve')} disabled={isSubmitting} className="bg-green-500 hover:bg-green-600">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Approuver</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
-      <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Rejeter le retrait ?</AlertDialogTitle><AlertDialogDescription>Confirmez le rejet de la demande de <strong>{selectedRequest?.amount.toLocaleString('fr-FR')} F</strong> pour <strong>{selectedRequest?.username}</strong>.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={isSubmitting}>Annuler</AlertDialogCancel><AlertDialogAction onClick={() => confirmProcessRequest('reject')} disabled={isSubmitting} className="bg-red-500 hover:bg-red-500">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Rejeter</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+      <AlertDialog open={showApproveDialog} onOpenChange={setShowApproveDialog}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Approuver le retrait ?</AlertDialogTitle><AlertDialogDescription>Confirmez l'approbation de <strong>{selectedRequest?.amount.toLocaleString('fr-FR')} F</strong> pour <strong>{selectedRequest?.playerInfo.username}</strong>.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={isSubmitting}>Annuler</AlertDialogCancel><AlertDialogAction onClick={() => confirmProcessRequest('approve')} disabled={isSubmitting} className="bg-green-500 hover:bg-green-600">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Approuver</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+      <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Rejeter le retrait ?</AlertDialogTitle><AlertDialogDescription>Veuillez fournir un motif pour le rejet de la demande de <strong>{selectedRequest?.amount.toLocaleString('fr-FR')} F</strong> pour <strong>{selectedRequest?.playerInfo.username}</strong>.</AlertDialogDescription><Input placeholder="Motif du rejet (obligatoire)" value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)} className="mt-4" /></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={isSubmitting}>Annuler</AlertDialogCancel><AlertDialogAction onClick={() => confirmProcessRequest('reject')} disabled={isSubmitting} className="bg-red-500 hover:bg-red-500">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Rejeter</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     </div>
   );
 }
