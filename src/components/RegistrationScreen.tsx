@@ -150,7 +150,9 @@ export function RegistrationScreen({ prefilledIdentifier, onBack }: Registration
               <Label htmlFor="password" style={{ color: isDark ? '#EAEAEA' : '#1C1C1E' }}>Créer un mot de passe</Label>
               <div className="relative">
                 <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="Au moins 6 caractères" value={password} onChange={(e) => setPassword(e.target.value)} className="pr-12" style={{ backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#d1d1d6', color: isDark ? '#EAEAEA' : '#1C1C1E' }}/>
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: isDark ? '#8E8E93' : '#6e6e73' }}><_components.EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}</button>
+<button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: isDark ? '#8E8E93' : '#6e6e73' }}>
+  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+</button>
               </div>
             </div>
 
@@ -159,7 +161,7 @@ export function RegistrationScreen({ prefilledIdentifier, onBack }: Registration
               <Label htmlFor="confirmPassword" style={{ color: isDark ? '#EAEAEA' : '#1C1C1E' }}>Confirmer le mot de passe</Label>
               <div className="relative">
                 <Input id="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} placeholder="Retapez votre mot de passe" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="pr-12" style={{ backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#d1d1d6', color: isDark ? '#EAEAEA' : '#1C1C1E' }}/>
-                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: isDark ? '#8E8E93' : '#6e6e73' }}>{showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}</button>
+<button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: isDark ? '#8E8E93' : '#6e6e73' }}> {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />} </button>
               </div>
             </div>
 
