@@ -77,7 +77,7 @@ export function AdminResellers() {
     setIsSubmitting(true);
     try {
       await updateUserStatusAPI(reseller.id, newStatus);
-      toast.success(`Statut mis à jour à : ${newStatus}`);
+      toast.success(`Statut mis à jour.`);
       setDetailsModal({ isOpen: false, reseller: null });
       setRefreshKey(prev => prev + 1);
     } catch(err) { toast.error("Échec de la mise à jour du statut."); } 
@@ -86,19 +86,28 @@ export function AdminResellers() {
   
   const handleAdjustTokens = async (reseller: Reseller) => {
     const amount = parseFloat(adjustAmount);
-    if (isNaN(amount)) { return toast.error("Veuillez entrer un montant valide (ex: 5000 ou -1000)."); }
-    if (!adjustReason) { return toast.error("Veuillez fournir une raison pour l'ajustement."); }
-    
+    if (isNaN(amount)) { return toast.error("Veuillez entrer un montant valide."); }
+    if (!adjustReason) { return toast.error("Veuillez fournir une raison."); }
     setIsSubmitting(true);
     try {
       await adjustResellerBalanceAPI(reseller.id, amount, adjustReason);
-      toast.success("Solde de jetons mis à jour avec succès !");
-      setAdjustAmount("");
-      setAdjustReason("");
+      toast.success("Solde de jetons mis à jour !");
+      setAdjustAmount(""); setAdjustReason("");
       setDetailsModal({ isOpen: false, reseller: null });
       setRefreshKey(prev => prev + 1);
-    } catch (err: any) { toast.error(err?.response?.data?.detail || "Échec de l'ajustement du solde."); } 
-    finally { setIsSubmitting(false); }
+    } catch (err: any) {
+      // --- LA CORRECTION EST ICI ---
+      const errorDetail = err?.response?.data?.detail;
+      let errorMessage = "Échec de l'ajustement du solde.";
+      if (typeof errorDetail === 'string') {
+        errorMessage = errorDetail;
+      } else if (Array.isArray(errorDetail) && errorDetail[0]?.msg) {
+        errorMessage = `Erreur: ${errorDetail[0].msg}`;
+      }
+      toast.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
   const filteredResellers = (resellers || []).filter(r => r.username.toLowerCase().includes(searchTerm.toLowerCase()) || r.phoneNumber.includes(searchTerm) || r.email.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -113,8 +122,8 @@ export function AdminResellers() {
         {isLoading ? (<div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-[#FFD700]" /></div>) 
         : error ? (<div className="text-center text-red-500 p-8">{error}</div>) 
         : (<>
-            <div className="hidden md:block overflow-auto"><Table><TableHeader><TableRow><TableHead>Utilisateur</TableHead><TableHead>Téléphone</TableHead><TableHead>Email</TableHead><TableHead>Solde Jetons</TableHead><TableHead>Statut</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader><TableBody>{filteredResellers.map((reseller) => (<TableRow key={reseller.id}><TableCell className="font-medium">{reseller.username}</TableCell><TableCell>{reseller.phoneNumber}</TableCell><TableCell>{reseller.email}</TableCell><TableCell className="text-[#FFD700]">{(reseller.tokenBalance ?? 0).toLocaleString('fr-FR')} F</TableCell><TableCell><Badge variant={reseller.status === 'suspended' ? 'destructive' : 'default'} className={reseller.status === 'suspended' ? '' : 'bg-green-600'}>{reseller.status === 'suspended' ? 'Suspendu' : 'Actif'}</Badge></TableCell><TableCell className="text-right"><Button variant="ghost" size="sm" onClick={() => setDetailsModal({ isOpen: true, reseller })}><Eye className="h-4 w-4 mr-2" />Détails</Button></TableCell></TableRow>))}</TableBody></Table></div>
-            <div className="md:hidden p-4 space-y-3">{filteredResellers.map((reseller) => (<Card key={reseller.id} className="p-4"><div className="space-y-3"><div className="flex items-start justify-between"><div><p className="font-bold">{reseller.username}</p><p className="text-sm text-muted-foreground">{reseller.phoneNumber}</p></div><Badge variant={reseller.status === 'suspended' ? 'destructive' : 'default'} className={reseller.status === 'suspended' ? 'text-xs' : 'bg-green-600 text-xs'}>{reseller.status === 'suspended' ? 'Suspendu' : 'Actif'}</Badge></div><div className="grid grid-cols-1"><p className="text-muted-foreground text-xs">Solde Jetons</p><p className="font-medium text-[#FFD700]">{(reseller.tokenBalance ?? 0).toLocaleString('fr-FR')} F</p></div><Button variant="outline" size="sm" className="w-full" onClick={() => setDetailsModal({ isOpen: true, reseller })}><Eye className="h-4 w-4 mr-2" />Voir les détails</Button></div></Card>))}</div>
+            <div className="hidden md:block overflow-auto"><Table><TableHeader><TableRow><TableHead>Utilisateur</TableHead><TableHead>Téléphone</TableHead><TableHead>Email</TableHead><TableHead>Solde Jetons</TableHead><TableHead>Statut</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader><TableBody>{filteredResellers.map((r) => (<TableRow key={r.id}><TableCell className="font-medium">{r.username}</TableCell><TableCell>{r.phoneNumber}</TableCell><TableCell>{r.email}</TableCell><TableCell className="text-[#FFD700]">{(r.tokenBalance ?? 0).toLocaleString('fr-FR')} F</TableCell><TableCell><Badge variant={r.status === 'suspended' ? 'destructive' : 'default'} className={r.status === 'suspended' ? '' : 'bg-green-600'}>{r.status === 'suspended' ? 'Suspendu' : 'Actif'}</Badge></TableCell><TableCell className="text-right"><Button variant="ghost" size="sm" onClick={() => setDetailsModal({ isOpen: true, reseller: r })}><Eye className="h-4 w-4 mr-2" />Détails</Button></TableCell></TableRow>))}</TableBody></Table></div>
+            <div className="md:hidden p-4 space-y-3">{filteredResellers.map((r) => (<Card key={r.id} className="p-4"><div className="space-y-3"><div className="flex items-start justify-between"><div><p className="font-bold">{r.username}</p><p className="text-sm text-muted-foreground">{r.phoneNumber}</p></div><Badge variant={r.status === 'suspended' ? 'destructive' : 'default'} className={r.status === 'suspended' ? 'text-xs' : 'bg-green-600 text-xs'}>{r.status === 'suspended' ? 'Suspendu' : 'Actif'}</Badge></div><div className="grid grid-cols-1"><p className="text-muted-foreground text-xs">Solde Jetons</p><p className="font-medium text-[#FFD700]">{(r.tokenBalance ?? 0).toLocaleString('fr-FR')} F</p></div><Button variant="outline" size="sm" className="w-full" onClick={() => setDetailsModal({ isOpen: true, reseller: r })}><Eye className="h-4 w-4 mr-2" />Voir les détails</Button></div></Card>))}</div>
             <div className="flex items-center justify-between p-4 border-t"><span className="text-sm text-muted-foreground">Page {currentPage}</span><div className="flex gap-2"><Button variant="outline" size="sm" onClick={handlePrevPage} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4 mr-2" />Précédent</Button><Button variant="outline" size="sm" onClick={handleNextPage} disabled={isLastPage}>Suivant<ChevronRight className="h-4 w-4 ml-2" /></Button></div></div>
            </>
         )}
