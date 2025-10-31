@@ -55,7 +55,22 @@ export function AdminResellers() {
   const handleNextPage = () => !isLastPage && setCurrentPage(p => p + 1);
   const handlePrevPage = () => currentPage > 1 && setCurrentPage(p => p - 1);
 
-  const handleCreateReseller = async () => { /* ... cette fonction est déjà bonne ... */ };
+  const handleCreateReseller = async () => {
+    if (!newResellerUsername || !newResellerPhone || !newResellerEmail || !newResellerPassword) { return toast.error("Veuillez remplir tous les champs obligatoires."); }
+    if (!newResellerEmail.includes('@')) { return toast.error("Format d'email invalide."); }
+    if (newResellerPassword.length < 8) { return toast.error("Le mot de passe doit contenir au moins 8 caractères."); }
+    const fullPhoneNumber = `${newResellerCountryCode}${newResellerPhone.replace(/\s/g, '')}`;
+    const initialTokenBalance = newResellerTokenBalance ? parseFloat(newResellerTokenBalance) : 0;
+    setIsSubmitting(true);
+    try {
+      await createResellerAPI({ username: newResellerUsername, phoneNumber: fullPhoneNumber, email: newResellerEmail, password: newResellerPassword, initialTokenBalance });
+      toast.success("Revendeur créé avec succès !");
+      setCreateModal({ isOpen: false });
+      setRefreshKey(prev => prev + 1);
+      setNewResellerUsername(""); setNewResellerPhone(""); setNewResellerEmail(""); setNewResellerPassword(""); setNewResellerTokenBalance("");
+    } catch (err: any) { toast.error(err?.response?.data?.detail || "Erreur lors de la création."); } 
+    finally { setIsSubmitting(false); }
+  };
 
   const handleToggleStatus = async (reseller: Reseller) => {
     const newStatus = reseller.status === 'active' ? 'suspended' : 'active';
@@ -109,7 +124,22 @@ export function AdminResellers() {
            </>
         )}
       </Card>
-      <Dialog open={createModal.isOpen} onOpenChange={(open) => setCreateModal({ isOpen: open })}>{/* ... Contenu de la modale de création ... */}</Dialog>
+      
+      {/* --- MODALE DE CRÉATION RESTAURÉE --- */}
+      <Dialog open={createModal.isOpen} onOpenChange={(open) => setCreateModal({ isOpen: open })}>
+        <DialogContent className="max-w-md bg-card border-border">
+          <DialogHeader><DialogTitle>Créer un nouveau revendeur</DialogTitle><DialogDescription className="sr-only">Formulaire de création d'un nouveau compte revendeur</DialogDescription></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2"><Label htmlFor="username">Nom d'utilisateur *</Label><Input id="username" placeholder="Ex: SUPER_LOTO" value={newResellerUsername} onChange={(e) => setNewResellerUsername(e.target.value)} /></div>
+            <div className="space-y-2"><Label htmlFor="phone">Numéro de téléphone *</Label><div className="flex gap-2"><Select value={newResellerCountryCode} onValueChange={setNewResellerCountryCode}><SelectTrigger className="w-32"><SelectValue /></SelectTrigger><SelectContent>{COUNTRIES.map((c) => (<SelectItem key={c.code} value={c.code}><span className="flex items-center gap-2"><span>{c.flag}</span><span>{c.code}</span></span></SelectItem>))}</SelectContent></Select><Input id="phone" placeholder="90 12 34 56" value={newResellerPhone} onChange={(e) => setNewResellerPhone(e.target.value)} className="flex-1" /></div></div>
+            <div className="space-y-2"><Label htmlFor="email">Email *</Label><Input id="email" type="email" placeholder="revendeur@example.com" value={newResellerEmail} onChange={(e) => setNewResellerEmail(e.target.value)} /></div>
+            <div className="space-y-2"><Label htmlFor="password">Mot de passe *</Label><Input id="password" type="password" placeholder="Minimum 8 caractères" value={newResellerPassword} onChange={(e) => setNewResellerPassword(e.target.value)} /></div>
+            <div className="space-y-2"><Label htmlFor="tokenBalance">Solde de jetons initial (optionnel)</Label><Input id="tokenBalance" type="number" placeholder="0" value={newResellerTokenBalance} onChange={(e) => setNewResellerTokenBalance(e.target.value)} /></div>
+          </div>
+          <DialogFooter className="flex gap-2"><Button variant="outline" onClick={() => setCreateModal({ isOpen: false })}>Annuler</Button><Button onClick={handleCreateReseller} disabled={isSubmitting} className="bg-[#FFD700] text-black hover:bg-[#FFD700]/90">{isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Créer le revendeur</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
       <Dialog open={detailsModal.isOpen} onOpenChange={(open) => { if (!open) { setDetailsModal({ isOpen: false, reseller: null }); setAdjustAmount(""); setAdjustReason(""); } else { setDetailsModal({ ...detailsModal, isOpen: true }); } }}>
         <DialogContent className="max-w-2xl bg-card border-border">
             <DialogHeader><DialogTitle>Détails du revendeur : {detailsModal.reseller?.username}</DialogTitle></DialogHeader>
