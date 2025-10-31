@@ -50,64 +50,47 @@ export function RegistrationScreen({ prefilledIdentifier, onBack }: Registration
   }, []);
 
 
-// Dans src/components/RegistrationScreen.tsx
+// DANS src/components/RegistrationScreen.tsx
+// REMPLACE ta fonction handleRegister par CELLE-CI :
 
 const handleRegister = async () => {
-  // --- La validation des champs reste la même, avec une petite correction pour le mot de passe ---
-  if (!username || username.length < 3) {
-    toast.error("Le nom d'utilisateur doit contenir au moins 3 caractères.");
-    return;
-  }
-  if (!email || !email.includes('@')) {
-    toast.error("Veuillez entrer une adresse email valide.");
-    return;
-  }
-  if (!phoneNumber || phoneNumber.length < 8) {
-    toast.error("Veuillez entrer un numéro de téléphone valide.");
-    return;
-  }
-  // CORRECTION: Le backend attend 8 caractères minimum pour le mot de passe
-  if (!password || password.length < 8) {
-    toast.error("Le mot de passe doit contenir au moins 8 caractères.");
-    return;
-  }
-  if (password !== confirmPassword) {
-    toast.error("Les mots de passe ne correspondent pas.");
-    return;
-  }
+  // La validation reste la même
+  if (!username || username.length < 3) { toast.error("Le nom d'utilisateur doit contenir au moins 3 caractères."); return; }
+  if (!email || !email.includes('@')) { toast.error("Veuillez entrer une adresse email valide."); return; }
+  if (!phoneNumber || phoneNumber.length < 8) { toast.error("Veuillez entrer un numéro de téléphone valide."); return; }
+  if (!password || password.length < 8) { toast.error("Le mot de passe doit contenir au moins 8 caractères."); return; }
+  if (password !== confirmPassword) { toast.error("Les mots de passe ne correspondent pas."); return; }
   
   try {
     const fullPhoneNumber = `${countryCode}${phoneNumber}`;
     
-    // --- LA CORRECTION PRINCIPALE EST ICI ---
-    // On appelle la fonction `register` SANS le champ `role`.
     await register({
       username,
       email,
       phoneNumber: fullPhoneNumber,
       password,
-      // "role: 'player'" a été supprimé !
     });
 
     toast.success(`Compte créé ! Bienvenue ${username} ! 🎉`);
-    // Le AuthContext mettra à jour l'utilisateur et App.tsx gérera la redirection.
 
   } catch (err: any) {
-    // La gestion d'erreur que nous avons mise en place à l'étape précédente est parfaite.
-    // Elle affichera maintenant les messages détaillés du backend comme "Email already registered".
-    const errorData = err?.response?.data;
-    let errorMessage = "L'inscription a échoué. Veuillez vérifier vos informations.";
-
-    if (errorData?.detail) {
-        if (typeof errorData.detail === 'string') {
-            errorMessage = errorData.detail; // ex: "Email déjà utilisé"
-        } else if (Array.isArray(errorData.detail)) {
-            // Pour les erreurs de validation Pydantic
-            errorMessage = `Erreur sur le champ '${errorData.detail[0].loc[1]}': ${errorData.detail[0].msg}`;
-        }
-    }
+    // --- PARTIE DÉBOGAGE AGRESSIF ---
+    console.error("--- ERREUR D'INSCRIPTION DÉTAILLÉE ---", err);
     
-    toast.error(errorMessage);
+    const errorStatus = err.response?.status;
+    const errorData = err.response?.data;
+
+    // Affiche les données de la réponse dans la console pour une analyse détaillée
+    console.log("STATUT DE L'ERREUR:", errorStatus);
+    console.log("DONNÉES DE LA RÉPONSE:", errorData);
+
+    // AFFICHE UNE ALERTE BLOQUANTE POUR NE PAS RATER LE MESSAGE
+    alert(
+      `Échec de l'inscription !\n\n` +
+      `Statut: ${errorStatus}\n\n` +
+      `Message du Backend:\n` +
+      `${JSON.stringify(errorData, null, 2)}`
+    );
   }
 };
 
