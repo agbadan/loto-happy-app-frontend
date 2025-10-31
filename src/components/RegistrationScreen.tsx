@@ -49,51 +49,52 @@ export function RegistrationScreen({ prefilledIdentifier, onBack }: Registration
     // Le tableau de dépendances vide assure que cela ne se produit qu'une seule fois.
   }, []);
 
-  const handleRegister = async () => {
-    // --- VALIDATION DES CHAMPS ---
-    if (!username || username.length < 3) {
-      toast.error("Le nom d'utilisateur doit contenir au moins 3 caractères.");
-      return;
-    }
-    if (!email || !email.includes('@')) {
-      toast.error("Veuillez entrer une adresse email valide.");
-      return;
-    }
-    if (!phoneNumber || phoneNumber.length < 8) {
-      toast.error("Veuillez entrer un numéro de téléphone valide.");
-      return;
-    }
-    if (!password || password.length < 6) {
-      toast.error("Le mot de passe doit contenir au moins 6 caractères.");
-      return;
-    }
-    if (password !== confirmPassword) {
-      toast.error("Les mots de passe ne correspondent pas.");
-      return;
-    }
+
+const handleRegister = async () => {
+  // --- La validation des champs reste la même ---
+  if (!username || username.length < 3) {
+    toast.error("Le nom d'utilisateur doit contenir au moins 3 caractères.");
+    return;
+  }
+  if (!email || !email.includes('@')) {
+    toast.error("Veuillez entrer une adresse email valide.");
+    return;
+  }
+  if (!phoneNumber || phoneNumber.length < 8) {
+    toast.error("Veuillez entrer un numéro de téléphone valide.");
+    return;
+  }
+  if (!password || password.length < 6) {
+    toast.error("Le mot de passe doit contenir au moins 6 caractères.");
+    return;
+  }
+  if (password !== confirmPassword) {
+    toast.error("Les mots de passe ne correspondent pas.");
+    return;
+  }
+  
+  try {
+    const fullPhoneNumber = `${countryCode}${phoneNumber}`;
     
-    try {
-      // On assemble le numéro de téléphone complet pour l'API
-      const fullPhoneNumber = `${countryCode}${phoneNumber}`;
-      
-      await register({
-        username,
-        email,
-        phoneNumber: fullPhoneNumber,
-        password,
-        role: 'player',
-      });
+    await register({
+      username,
+      email,
+      phoneNumber: fullPhoneNumber,
+      password,
+      role: 'player',
+    });
 
-      // Si on arrive ici, l'inscription a réussi.
-      // Le AuthContext va mettre à jour l'utilisateur et App.tsx gérera la redirection.
-      toast.success(`Compte créé ! Bienvenue ${username} ! 🎉`);
+    toast.success(`Compte créé ! Bienvenue ${username} ! 🎉`);
+    // Si succès, la redirection sera gérée automatiquement par App.tsx
 
-    } catch (err: any) {
-      // Gérer les erreurs spécifiques du backend (ex: email déjà utilisé)
-      const errorMessage = err?.response?.data?.detail || "L'inscription a échoué.";
-      toast.error(errorMessage);
-    }
-  };
+  } catch (err: any) {
+    // --- CORRECTION IMPORTANTE ---
+    // On attrape l'erreur et on affiche un message détaillé à l'utilisateur.
+    const errorMessage = err?.response?.data?.detail || "L'inscription a échoué. Veuillez vérifier vos informations.";
+    toast.error(errorMessage);
+    // L'utilisateur reste sur la page d'inscription pour pouvoir corriger ses erreurs.
+  }
+};
 
   // Le JSX est simplifié pour ne montrer que le formulaire d'inscription classique
   // La logique Google a été retirée pour clarifier, elle peut être réintégrée plus tard si besoin.
