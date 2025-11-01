@@ -11,9 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Separator } from "../ui/separator";
 import { toast } from "sonner";
 import { Plus, Calendar, Trophy, Clock, Info, Loader2, Archive } from "lucide-react";
-import { Draw, Multipliers, getAdminDrawsByStatus, createAdminDraw, publishDrawResults } from "../../utils/drawsAPI";
+// Assurez-vous que l'importation de drawsAPI est correcte par rapport à votre structure de fichiers
+import { Draw, Multipliers, getAdminDrawsByStatus, createAdminDraw, publishDrawResults } from "../../utils/drawsAPI"; 
 
-// --- CONFIGURATIONS (Conformes au backend) ---
+// --- CONFIGURATIONS (Conformes au frontend) ---
 const OPERATORS_CONFIG = [
     { id: 'benin-lotto', name: 'Bénin Lotto', icon: '🇧🇯', country: 'Bénin' },
     { id: 'lotto-kadoo-togo', name: 'Lotto Kadoo', icon: '🇹🇬', country: 'Togo' },
@@ -39,7 +40,7 @@ const getDefaultMultipliers = (): Multipliers => ({
     'PERMUTATION': 500, 'BANKA': 500, 'CHANCE_PLUS': 90, 'ANAGRAMME': 10,
 });
 
-type AdminDrawStatus = 'upcoming' | 'completed' | 'archived';
+type AdminDrawStatus = 'upcoming' | 'completed' | 'archived' | 'cancelled';
 
 // --- COMPOSANT PRINCIPAL ---
 export function AdminGames() {
@@ -128,10 +129,9 @@ export function AdminGames() {
 // --- SOUS-COMPOSANTS ---
 
 function DrawCard({ draw, onEnterResults }: { draw: Draw; onEnterResults: () => void; }) {
-    // CORRECTION: Utilisation des champs en snake_case de l'API (`operator_id`, `draw_date`, etc.)
-    const operator = OPERATORS_CONFIG.find(op => op.id === draw.operator_id);
+    const operator = OPERATORS_CONFIG.find(op => op.id === draw.operatorId);
     
-    const drawDate = new Date(draw.draw_date);
+    const drawDate = new Date(draw.drawDate);
     const formattedDate = !isNaN(drawDate.getTime()) ? drawDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : "Date invalide";
     const formattedTime = !isNaN(drawDate.getTime()) ? drawDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : "";
 
@@ -141,19 +141,19 @@ function DrawCard({ draw, onEnterResults }: { draw: Draw; onEnterResults: () => 
             <div className="flex items-start gap-4">
                 <span className="text-3xl pt-1">{operator?.icon || '🎲'}</span>
                 <div>
-                    <h3 className="font-bold text-lg">{draw.operator_name || 'Inconnu'}</h3>
+                    <h3 className="font-bold text-lg">{draw.operatorName || 'Inconnu'}</h3>
                     <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /><span>{formattedDate}</span></div>
                         <div className="flex items-center gap-1.5"><Clock className="h-4 w-4" /><span>{formattedTime}</span></div>
                     </div>
-                    {draw.winning_numbers && draw.winning_numbers.length > 0 && 
+                    {draw.winningNumbers && draw.winningNumbers.length > 0 && 
                         <div className="flex items-center gap-1.5 mt-3 text-sm font-semibold text-yellow-400">
-                           <Trophy className="h-4 w-4" /> Numéros: {draw.winning_numbers.join(', ')}
+                           <Trophy className="h-4 w-4" /> Numéros: {draw.winningNumbers.join(', ')}
                         </div>
                     }
                 </div>
             </div>
-            {draw.status === 'completed' && (!draw.winning_numbers || draw.winning_numbers.length === 0) && (
+            {draw.status === 'completed' && (!draw.winningNumbers || draw.winningNumbers.length === 0) && (
                 <Button size="sm" variant="outline" onClick={onEnterResults} className="bg-orange-500 hover:bg-orange-600 text-white">
                     Saisir les Résultats
                 </Button>
@@ -168,6 +168,7 @@ function EmptyState({ status, onCreateClick }: { status: AdminDrawStatus; onCrea
         upcoming: { icon: Calendar, text: "Aucun tirage à venir" },
         completed: { icon: Trophy, text: "Aucun résultat à afficher" },
         archived: { icon: Archive, text: "Aucune archive trouvée" },
+        cancelled: { icon: Archive, text: "Aucun tirage annulé" }
     };
     const { icon: Icon, text } = messages[status];
 
@@ -175,6 +176,7 @@ function EmptyState({ status, onCreateClick }: { status: AdminDrawStatus; onCrea
         <Card className="p-12 text-center text-muted-foreground border-dashed flex flex-col items-center justify-center">
             <Icon className="h-12 w-12 mb-4" />
             <p className="mb-6 font-semibold">{text}</p>
+            {/* CORRECTION STYLE : Le bouton "Créer un tirage" est maintenant jaune */}
             {status === 'upcoming' && <Button onClick={onCreateClick} className="bg-yellow-400 text-black hover:bg-yellow-500">Créer un tirage</Button>}
         </Card>
     );
@@ -232,6 +234,7 @@ function CreateDrawModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onCl
                 </div>
                 <DialogFooter className="pt-4 border-t mt-auto">
                     <Button variant="ghost" onClick={onClose}>Annuler</Button>
+                    {/* CORRECTION STYLE : Le bouton "Créer le Tirage" est maintenant jaune */}
                     <Button onClick={handleCreate} disabled={isSubmitting} className="bg-yellow-400 text-black hover:bg-yellow-500">
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Créer le Tirage
                     </Button>
@@ -247,7 +250,7 @@ function ResultsModal({ isOpen, onClose, onSuccess, draw }: { isOpen: boolean; o
 
     const handleSave = async () => {
         const numbersArray = winningNumbers.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
-        if (numbersArray.length === 0) { // On vérifie juste qu'il y a des numéros
+        if (numbersArray.length === 0) {
             return toast.error("Veuillez saisir des numéros valides.");
         }
         setIsSubmitting(true);
@@ -267,8 +270,7 @@ function ResultsModal({ isOpen, onClose, onSuccess, draw }: { isOpen: boolean; o
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent>
                 <DialogHeader>
-                    {/* CORRECTION: Utilisation de `draw.operator_name` */}
-                    <DialogTitle>Saisir les Résultats pour {draw.operator_name}</DialogTitle>
+                    <DialogTitle>Saisir les Résultats pour {draw.operatorName}</DialogTitle>
                     <DialogDescription>Entrez les numéros gagnants séparés par une virgule.</DialogDescription>
                 </DialogHeader>
                 <div className="py-4">
@@ -277,7 +279,7 @@ function ResultsModal({ isOpen, onClose, onSuccess, draw }: { isOpen: boolean; o
                 </div>
                 <DialogFooter>
                     <Button variant="ghost" onClick={onClose}>Annuler</Button>
-                    {/* CORRECTION: Ajout du style pour le bouton jaune */}
+                    {/* STYLE CONFIRMÉ : Le bouton "Enregistrer et Payer" reste jaune */}
                     <Button onClick={handleSave} disabled={isSubmitting} className="bg-yellow-400 text-black hover:bg-yellow-500">
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Enregistrer et Payer
                     </Button>
