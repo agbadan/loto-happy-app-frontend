@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { getAdmins, createAdmin, updateAdminRole, updateAdminStatus } from "../../utils/adminAPI";
-import { AdminUser } from "../../types";
+import { AdminUser } from "../../types"; // CORRECTION : Importer depuis le fichier central
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -51,6 +51,7 @@ export function AdminAdministrators() {
     
     setIsSubmitting(true);
     try {
+      // On caste en 'any' pour le payload de création qui n'a pas tous les champs
       await createAdmin({ username: newUsername, email: newEmail, password: newPassword, role: newRole } as any);
       toast.success("Administrateur créé avec succès !");
       await fetchAdmins();
@@ -64,7 +65,7 @@ export function AdminAdministrators() {
     if (!selectedAdmin) return;
     setIsSubmitting(true);
     try {
-      // CORRECTION : On utilise bien 'id' comme confirmé par le backend
+      // Cette ligne fonctionnera maintenant car selectedAdmin.id sera défini
       await updateAdminRole(selectedAdmin.id, editRole);
       toast.success("Rôle de l'administrateur mis à jour.");
       await fetchAdmins();
@@ -78,7 +79,7 @@ export function AdminAdministrators() {
     const newStatus = admin.status === 'active' ? 'suspended' : 'active';
     toast.info("Mise à jour du statut en cours...");
     try {
-      // CORRECTION : On utilise bien 'id' comme confirmé par le backend
+      // Cette ligne fonctionnera maintenant car admin.id sera défini
       await updateAdminStatus(admin.id, newStatus);
       toast.success("Statut mis à jour avec succès !");
       setEditModalOpen(false);
@@ -117,7 +118,6 @@ export function AdminAdministrators() {
             <thead className="bg-muted"><tr className="border-b"><th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Utilisateur</th><th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Rôle</th><th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Statut</th><th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider">Actions</th></tr></thead>
             <tbody className="divide-y divide-border">
               {admins.map((admin) => (
-                // CORRECTION : On utilise bien 'id' pour la clé unique
                 <tr key={admin.id} className="hover:bg-accent/50">
                   <td className="px-4 py-4">
                     <div className="font-medium text-foreground">{admin.username}</div>
@@ -132,6 +132,7 @@ export function AdminAdministrators() {
           </table>
         </div>
       </Card>
+
       
       <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
         <DialogContent className="max-w-md"><DialogHeader><DialogTitle>Créer un Nouvel Administrateur</DialogTitle><DialogDescription>Remplissez les informations du nouvel administrateur</DialogDescription></DialogHeader>

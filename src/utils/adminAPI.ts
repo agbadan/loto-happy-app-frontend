@@ -1,7 +1,7 @@
 // src/utils/adminAPI.ts
 
 import apiClient from '../services/apiClient';
-import { AdminUser } from '../types'; // Assurez-vous que le chemin vers votre fichier de types est correct
+import { AdminUser } from '../types'; // CORRECTION : Importer depuis le fichier central
 
 // =====================================================================
 // ===== FONCTIONS POUR LE PANEL DE GESTION DES ADMINISTRATEURS ======
@@ -18,7 +18,7 @@ export const getAdmins = async (): Promise<AdminUser[]> => {
 /**
  * Crée un nouvel administrateur.
  */
-export const createAdmin = async (adminData: Omit<AdminUser, 'id' | 'status' | 'createdAt'>): Promise<AdminUser> => {
+export const createAdmin = async (adminData: Omit<AdminUser, 'id' | 'status' | 'createdAt' | 'lastLogin'>): Promise<AdminUser> => {
   const response = await apiClient.post<AdminUser>('/api/admin/users', adminData);
   return response.data;
 };
@@ -38,4 +38,3 @@ export const updateAdminStatus = async (userId: string, status: 'active' | 'susp
   const response = await apiClient.put<AdminUser>(`/api/admin/users/${userId}/status`, { status });
   return response.data;
 };
-
