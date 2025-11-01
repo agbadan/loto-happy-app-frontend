@@ -3,22 +3,21 @@
 import apiClient from '../services/apiClient';
 
 // ====================================================================
-// ===== INTERFACES (Conservées et Mises à Jour) ======================
+// ===== INTERFACES (Corrigées pour correspondre au backend) ==========
 // ====================================================================
 
 export type Multipliers = Record<string, number>;
 
+// CORRECTION FINALE: L'interface utilise les noms de champs en camelCase 
+// confirmés par le backend. Les champs non fournis par l'API ont été retirés.
 export interface Draw {
   id: string;
-  operatorId: string;
   operatorName: string;
-  operatorIcon: string;
-  date: string;
-  time: string;
-  status: 'upcoming' | 'pending' | 'completed' | 'cancelled' | 'archived';
-  multipliers: Multipliers;
-  participants: number;
-  winningNumbers?: number[];
+  drawDate: string; // Contient la date ET l'heure au format ISO
+  status: 'upcoming' | 'completed' | 'archived' | 'cancelled';
+  winningNumbers: number[] | null;
+  // Note: operatorId, operatorIcon, multipliers, participants, date, time
+  // ne sont pas dans la réponse de GET /api/admin/draws, donc ils sont retirés de l'interface principale.
 }
 
 export interface Ticket {
@@ -37,7 +36,7 @@ export interface Ticket {
 export interface BetHistoryItem extends Ticket {
   operatorName: string;
   drawDate: string;
-  drawTime: string;
+  // drawTime a été retiré car drawDate contient déjà l'heure
   winningNumbers?: number[] | null;
 }
 
@@ -102,7 +101,6 @@ type AdminDrawStatus = 'upcoming' | 'completed' | 'archived' | 'cancelled';
 
 /**
  * 1. [ADMIN] Récupère une liste de tirages filtrée par statut.
- * Conforme au contrat: GET /api/admin/draws?status=...
  */
 export const getAdminDrawsByStatus = async (status: AdminDrawStatus): Promise<Draw[]> => {
   const response = await apiClient.get<{ items: Draw[] }>('/api/admin/draws', {
@@ -113,7 +111,6 @@ export const getAdminDrawsByStatus = async (status: AdminDrawStatus): Promise<Dr
 
 /**
  * 2. [ADMIN] Crée un nouveau tirage.
- * Conforme au contrat: POST /api/draws/
  */
 export const createAdminDraw = async (drawData: { operatorId: string; date: string; time: string; multipliers: Multipliers }): Promise<Draw> => {
   const response = await apiClient.post<Draw>('/api/draws/', drawData);
@@ -122,7 +119,6 @@ export const createAdminDraw = async (drawData: { operatorId: string; date: stri
 
 /**
  * 3. [ADMIN] Saisit les numéros gagnants pour un tirage.
- * Conforme au contrat: PUT /api/draws/{draw_id}/results
  */
 export const publishDrawResults = async (drawId: string, winningNumbers: number[]): Promise<any> => {
   const response = await apiClient.put(`/api/draws/${drawId}/results`, { winningNumbers });
@@ -131,7 +127,6 @@ export const publishDrawResults = async (drawId: string, winningNumbers: number[
 
 /**
  * 4. [ADMIN] Annule ou archive un tirage.
- * Conforme au contrat: PATCH /api/admin/draws/{draw_id}/status
  */
 export const updateAdminDrawStatus = async (drawId: string, status: 'cancelled' | 'archived'): Promise<Draw> => {
   const response = await apiClient.patch<Draw>(`/api/admin/draws/${drawId}/status`, { status });
