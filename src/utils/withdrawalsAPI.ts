@@ -13,24 +13,31 @@ export const getGlobalFinancialStats = async (): Promise<FinancialStats> => {
 
 /**
  * Récupère la liste de toutes les demandes de retrait.
- * CORRECTION FINALE : La réponse de l'API est un objet { items: [...] }. Nous devons extraire le tableau 'items'.
  */
 export const getWithdrawals = async (): Promise<Withdrawal[]> => {
-    // On s'attend à recevoir une structure comme { items: Withdrawal[] }
     const response = await apiClient.get<{ items: Withdrawal[] }>('/api/admin/withdrawals/');
-    return response.data.items; // On retourne seulement le tableau contenu dans la clé 'items'
+    return response.data.items;
 };
 
 /**
- * Met à jour le statut d'une demande de retrait (approuve ou rejette).
+ * CORRIGÉ : Traite une demande de retrait (approuve ou rejette) en utilisant la bonne route et méthode.
+ * @param withdrawalId - L'ID de la demande à traiter.
+ * @param action - L'action à effectuer : 'approve' ou 'reject'.
+ * @param reason - Le motif, obligatoire si l'action est 'reject'.
  */
-export const updateWithdrawalStatus = async (
-  withdrawalId: number | string,
-  status: 'approved' | 'rejected'
+export const processWithdrawalRequest = async (
+  withdrawalId: string,
+  action: 'approve' | 'reject',
+  reason?: string
 ): Promise<Withdrawal> => {
-    const response = await apiClient.patch<Withdrawal>(
-        `/api/admin/withdrawals/${withdrawalId}/`,
-        { status }
+    const body: { action: 'approve' | 'reject'; reason?: string } = { action };
+    if (action === 'reject') {
+        body.reason = reason;
+    }
+
+    const response = await apiClient.post<Withdrawal>(
+        `/api/admin/withdrawals/${withdrawalId}/process`,
+        body
     );
     return response.data;
 };

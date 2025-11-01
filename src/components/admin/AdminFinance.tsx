@@ -6,9 +6,11 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../ui/alert-dialog";
+import { Input } from "../ui/input"; // NOUVEL IMPORT
 import { toast } from "sonner";
 import { CheckCircle, XCircle, Wallet, Trophy, DollarSign, Users, Loader2, TrendingUp } from "lucide-react";
-import { getGlobalFinancialStats, getWithdrawals, updateWithdrawalStatus } from "../../utils/withdrawalsAPI";
+// MISE À JOUR : On importe la nouvelle fonction processWithdrawalRequest
+import { getGlobalFinancialStats, getWithdrawals, processWithdrawalRequest } from "../../utils/withdrawalsAPI";
 import { Withdrawal, FinancialStats } from "../../types";
 
 const StatCard = ({ title, value, icon: Icon, iconBg, iconColor, isCurrency = true, profitColor = false }: { title: string, value: number, icon: React.ElementType, iconBg: string, iconColor: string, isCurrency?: boolean, profitColor?: boolean }) => (
@@ -24,17 +26,14 @@ const WithdrawalCard = ({ request, onApprove, onReject }: { request: Withdrawal,
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                        {/* CORRECTION 1 : Accès au nom d'utilisateur via playerInfo */}
                         <h3 className="font-bold text-lg">{request.playerInfo?.username || 'Utilisateur inconnu'}</h3>
                         <Badge className={`bg-${statusConfig[currentStatus]?.color}/20 text-${statusConfig[currentStatus]?.color}`}>{statusConfig[currentStatus]?.text || 'Inconnu'}</Badge>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-2 text-sm mt-2">
                         <span>Montant: <span className="font-semibold">{request.amount.toLocaleString('fr-FR')} F</span></span>
                         <span>Opérateur: <span className="font-semibold">{request.provider || 'N/A'}</span></span>
-                        {/* CORRECTION 2 : Accès au numéro de téléphone de retrait */}
                         <span>Numéro: <span className="font-semibold">{request.withdrawalPhoneNumber || 'N/A'}</span></span>
                     </div>
-                    {/* CORRECTION 3 : Utilisation de requestDate pour la date */}
                     <p className="text-xs text-muted-foreground mt-2">{new Date(request.requestDate).toLocaleString('fr-FR')}</p>
                 </div>
                 {request.status === 'pending' && (
@@ -59,6 +58,8 @@ export function AdminFinance() {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<Withdrawal | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // NOUVEL ÉTAT pour le motif du rejet
+  const [rejectionReason, setRejectionReason] = useState("");
 
   const fetchAllData = async () => {
     setIsLoading({ stats: true, withdrawals: true });
@@ -81,17 +82,32 @@ export function AdminFinance() {
 
   useEffect(() => { fetchAllData(); }, []);
 
-  const handleApprove = (request: Withdrawal) => { setSelectedRequest(request); setShowApproveDialog(true); };
-  const handleReject = (request: Withdrawal) => { setSelectedRequest(request); setShowRejectDialog(true); };
+  const handleApprove = (request: Withdrawal) => { 
+    setSelectedRequest(request); 
+    setShowApproveDialog(true); 
+  };
+  
+  const handleReject = (request: Withdrawal) => { 
+    setSelectedRequest(request); 
+    setRejectionReason(""); // Réinitialiser le motif à chaque ouverture
+    setShowRejectDialog(true); 
+  };
 
-  const confirmProcessRequest = async (action: 'approved' | 'rejected') => {
+  // MISE À JOUR : Logique de traitement des demandes
+  const confirmProcessRequest = async (action: 'approve' | 'reject') => {
     if (!selectedRequest) return;
+
+    if (action === 'reject' && !rejectionReason.trim()) {
+      toast.error("Un motif est obligatoire pour rejeter une demande.");
+      return;
+    }
     
     setIsSubmitting(true);
     try {
-      await updateWithdrawalStatus(selectedRequest.id, action);
-      toast.success(`Demande ${action === 'approved' ? 'approuvée' : 'rejetée'}.`);
-      await fetchAllData();
+      // On utilise la nouvelle fonction `processWithdrawalRequest`
+      await processWithdrawalRequest(selectedRequest.id, action, rejectionReason);
+      toast.success(`Demande ${action === 'approve' ? 'approuvée' : 'rejetée'}.`);
+      await fetchAllData(); // Recharger toutes les données pour mettre à jour la UI
     } catch (err: any) { 
       toast.error(err?.response?.data?.detail || "Erreur lors de la mise à jour."); 
     } 
@@ -100,6 +116,7 @@ export function AdminFinance() {
       setShowApproveDialog(false);
       setShowRejectDialog(false);
       setSelectedRequest(null);
+      setRejectionReason(""); // Réinitialiser le motif
     }
   };
   
@@ -141,7 +158,7 @@ export function AdminFinance() {
         </>
         )}
       </Tabs>
-      {/* CORRECTION 4 : Mise à jour de l'accès dans les boîtes de dialogue */}
+      
       <AlertDialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -150,19 +167,39 @@ export function AdminFinance() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isSubmitting}>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={() => confirmProcessRequest('approved')} disabled={isSubmitting} className="bg-green-500 hover:bg-green-600">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Approuver</AlertDialogAction>
+            <AlertDialogAction onClick={() => confirmProcessRequest('approve')} disabled={isSubmitting} className="bg-green-500 hover:bg-green-600">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Approuver</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
       <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Rejeter le retrait ?</AlertDialogTitle>
-            <AlertDialogDescription>Confirmez le rejet de la demande de <strong>{selectedRequest?.amount.toLocaleString('fr-FR')} F</strong> pour <strong>{selectedRequest?.playerInfo?.username}</strong>. Cette action est irréversible.</AlertDialogDescription>
+            <AlertDialogDescription>
+              Confirmez le rejet de la demande de <strong>{selectedRequest?.amount.toLocaleString('fr-FR')} F</strong> pour <strong>{selectedRequest?.playerInfo?.username}</strong>. Un motif est obligatoire.
+            </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="py-2">
+            <label htmlFor="rejectionReason" className="text-sm font-medium text-muted-foreground">Motif du rejet</label>
+            <Input
+              id="rejectionReason"
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="Ex: Le numéro fourni est incorrect."
+              className="mt-2"
+            />
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isSubmitting}>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={() => confirmProcessRequest('rejected')} disabled={isSubmitting} className="bg-red-500 hover:bg-red-600">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Confirmer le Rejet</AlertDialogAction>
+            <AlertDialogAction 
+              onClick={() => confirmProcessRequest('reject')} 
+              disabled={isSubmitting || !rejectionReason.trim()} 
+              className="bg-red-500 hover:bg-red-600"
+            >
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+              Confirmer le Rejet
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
