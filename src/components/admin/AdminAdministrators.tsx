@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Shield, UserPlus, Edit, Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-
+ 
 const ADMIN_ROLES = ['Support Client', 'Admin du Jeu', 'Admin Financier', 'Super Admin'] as const;
 type AdminRole = typeof ADMIN_ROLES[number];
 
