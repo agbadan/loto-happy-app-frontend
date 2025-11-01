@@ -10,7 +10,7 @@ import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Separator } from "../ui/separator";
 import { toast } from "sonner";
-import { Plus, Calendar, Trophy, Timer, Clock, Info, Loader2, Archive } from "lucide-react";
+import { Plus, Calendar, Trophy, Clock, Info, Loader2, Archive } from "lucide-react";
 import { Draw, Multipliers, getAdminDrawsByStatus, createAdminDraw, publishDrawResults } from "../../utils/drawsAPI";
 
 // --- CONFIGURATIONS (Conformes au backend) ---
@@ -51,8 +51,6 @@ export function AdminGames() {
     const [isResultsModalOpen, setResultsModalOpen] = useState(false);
     const [selectedDraw, setSelectedDraw] = useState<Draw | null>(null);
 
-    // CORRECTION: La logique de chargement est simplifiée.
-    // Le comptage se fait à partir des données reçues.
     const loadDraws = async (status: AdminDrawStatus) => {
         setIsLoading(true);
         try {
@@ -66,7 +64,6 @@ export function AdminGames() {
         }
     };
 
-    // Recharger les tirages quand l'onglet actif change
     useEffect(() => {
         loadDraws(activeTab);
     }, [activeTab]);
@@ -109,7 +106,6 @@ export function AdminGames() {
                 isOpen={isCreateModalOpen} 
                 onClose={() => setCreateModalOpen(false)} 
                 onSuccess={() => {
-                    // Si on est déjà sur l'onglet "À Venir", on le recharge, sinon on y va.
                     if (activeTab === 'upcoming') {
                         loadDraws('upcoming');
                     } else {
@@ -132,10 +128,10 @@ export function AdminGames() {
 // --- SOUS-COMPOSANTS ---
 
 function DrawCard({ draw, onEnterResults }: { draw: Draw; onEnterResults: () => void; }) {
-    // CORRECTION: La correspondance se fait maintenant par `operatorId`, ce qui est 100% fiable.
-    const operator = OPERATORS_CONFIG.find(op => op.id === draw.operatorId);
+    // CORRECTION: Utilisation des champs en snake_case de l'API (`operator_id`, `draw_date`, etc.)
+    const operator = OPERATORS_CONFIG.find(op => op.id === draw.operator_id);
     
-    const drawDate = new Date(draw.drawDate);
+    const drawDate = new Date(draw.draw_date);
     const formattedDate = !isNaN(drawDate.getTime()) ? drawDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : "Date invalide";
     const formattedTime = !isNaN(drawDate.getTime()) ? drawDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : "";
 
@@ -145,19 +141,19 @@ function DrawCard({ draw, onEnterResults }: { draw: Draw; onEnterResults: () => 
             <div className="flex items-start gap-4">
                 <span className="text-3xl pt-1">{operator?.icon || '🎲'}</span>
                 <div>
-                    <h3 className="font-bold text-lg">{draw.operatorName || 'Inconnu'}</h3>
+                    <h3 className="font-bold text-lg">{draw.operator_name || 'Inconnu'}</h3>
                     <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /><span>{formattedDate}</span></div>
                         <div className="flex items-center gap-1.5"><Clock className="h-4 w-4" /><span>{formattedTime}</span></div>
                     </div>
-                    {draw.winningNumbers && draw.winningNumbers.length > 0 && 
+                    {draw.winning_numbers && draw.winning_numbers.length > 0 && 
                         <div className="flex items-center gap-1.5 mt-3 text-sm font-semibold text-yellow-400">
-                           <Trophy className="h-4 w-4" /> Numéros: {draw.winningNumbers.join(', ')}
+                           <Trophy className="h-4 w-4" /> Numéros: {draw.winning_numbers.join(', ')}
                         </div>
                     }
                 </div>
             </div>
-            {draw.status === 'completed' && (!draw.winningNumbers || draw.winningNumbers.length === 0) && (
+            {draw.status === 'completed' && (!draw.winning_numbers || draw.winning_numbers.length === 0) && (
                 <Button size="sm" variant="outline" onClick={onEnterResults} className="bg-orange-500 hover:bg-orange-600 text-white">
                     Saisir les Résultats
                 </Button>
@@ -245,16 +241,14 @@ function CreateDrawModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onCl
     );
 }
 
-
-// Gère la modale de saisie des résultats
 function ResultsModal({ isOpen, onClose, onSuccess, draw }: { isOpen: boolean; onClose: () => void; onSuccess: () => void; draw: Draw; }) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [winningNumbers, setWinningNumbers] = useState("");
 
     const handleSave = async () => {
         const numbersArray = winningNumbers.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
-        if (numbersArray.length < 5) {
-            return toast.error("Veuillez saisir au moins 5 numéros valides.");
+        if (numbersArray.length === 0) { // On vérifie juste qu'il y a des numéros
+            return toast.error("Veuillez saisir des numéros valides.");
         }
         setIsSubmitting(true);
         try {
@@ -273,8 +267,9 @@ function ResultsModal({ isOpen, onClose, onSuccess, draw }: { isOpen: boolean; o
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Saisir les Résultats pour {draw.operatorName}</DialogTitle>
-                    <DialogDescription>Entrez les 5 numéros gagnants séparés par une virgule.</DialogDescription>
+                    {/* CORRECTION: Utilisation de `draw.operator_name` */}
+                    <DialogTitle>Saisir les Résultats pour {draw.operator_name}</DialogTitle>
+                    <DialogDescription>Entrez les numéros gagnants séparés par une virgule.</DialogDescription>
                 </DialogHeader>
                 <div className="py-4">
                     <Label htmlFor="winning-numbers">Numéros Gagnants *</Label>
@@ -282,8 +277,9 @@ function ResultsModal({ isOpen, onClose, onSuccess, draw }: { isOpen: boolean; o
                 </div>
                 <DialogFooter>
                     <Button variant="ghost" onClick={onClose}>Annuler</Button>
-                    <Button onClick={handleSave} disabled={isSubmitting}>
-                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Enregistrer et Payer les Gains
+                    {/* CORRECTION: Ajout du style pour le bouton jaune */}
+                    <Button onClick={handleSave} disabled={isSubmitting} className="bg-yellow-400 text-black hover:bg-yellow-500">
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Enregistrer et Payer
                     </Button>
                 </DialogFooter>
             </DialogContent>
