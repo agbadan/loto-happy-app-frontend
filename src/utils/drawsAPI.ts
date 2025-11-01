@@ -2,7 +2,14 @@
 
 import apiClient from '../services/apiClient';
 
-// ===== INTERFACES =====
+// ====================================================================
+// ===== INTERFACES (Conservées et Mises à Jour) ======================
+// ====================================================================
+
+// Type pour les multiplicateurs, requis par la création de tirage admin.
+export type Multipliers = Record<string, number>;
+
+// Interface principale pour un Tirage, avec tous les statuts possibles.
 export interface Draw {
   id: string;
   operatorId: string;
@@ -10,8 +17,8 @@ export interface Draw {
   operatorIcon: string;
   date: string;
   time: string;
-  status: 'upcoming' | 'pending' | 'completed';
-  multipliers: Record<string, number>;
+  status: 'upcoming' | 'pending' | 'completed' | 'cancelled' | 'archived';
+  multipliers: Multipliers;
   participants: number;
   winningNumbers?: number[];
 }
@@ -49,7 +56,10 @@ export interface WinNotification {
   read: boolean;
 }
 
-// ===== GESTION DES TIRAGES (DRAWS) =====
+
+// ====================================================================
+// ===== FONCTIONS POUR L'INTERFACE JOUEUR (Conservées) =============
+// ====================================================================
 
 export const getUpcomingDraws = async (): Promise<Draw[]> => {
   const response = await apiClient.get<Draw[]>('/api/draws/upcoming');
@@ -61,24 +71,10 @@ export const getCompletedDraws = async (): Promise<Draw[]> => {
   return response.data;
 };
 
-// --- FONCTION RÉ-AJOUTÉE ---
 export const getDrawById = async (drawId: string): Promise<Draw> => {
   const response = await apiClient.get<Draw>(`/api/draws/${drawId}`);
   return response.data;
 };
-
-export const createDraw = async (drawData: { operatorId: string; date: string; time: string; }): Promise<Draw> => {
-  const response = await apiClient.post<Draw>('/api/draws', drawData);
-  return response.data;
-};
-
-export const publishDrawResults = async (drawId: string, winningNumbers: number[]): Promise<any> => {
-  const response = await apiClient.put(`/api/draws/${drawId}/results`, { winningNumbers });
-  return response.data;
-};
-
-
-// ===== GESTION DES PARIS (TICKETS) =====
 
 export const createTicket = async (ticketData: { drawId: string; betType: string; numbers: string; betAmount: number; }): Promise<{ ticket: Ticket }> => {
   const response = await apiClient.post<{ ticket: Ticket }>('/api/tickets', ticketData);
@@ -90,9 +86,6 @@ export const getBetHistory = async (): Promise<BetHistoryItem[]> => {
   return response.data;
 };
 
-
-// ===== NOTIFICATIONS DE GAINS =====
-
 export const getUserNotifications = async (): Promise<WinNotification[]> => {
   console.warn("La fonction getUserNotifications n'est pas encore implémentée.");
   return [];
@@ -100,4 +93,49 @@ export const getUserNotifications = async (): Promise<WinNotification[]> => {
 
 export const markNotificationAsRead = async (notificationId: string): Promise<void> => {
   await apiClient.put(`/api/notifications/${notificationId}/read`);
+};
+
+
+// =====================================================================
+// ===== FONCTIONS POUR LE PANEL ADMIN (Corrigées selon le contrat) ====
+// =====================================================================
+
+type AdminDrawStatus = 'upcoming' | 'completed' | 'archived' | 'cancelled';
+
+/**
+ * 1. [ADMIN] Récupère une liste de tirages filtrée par statut.
+ * Conforme au contrat: GET /api/admin/draws?status=...
+ */
+export const getAdminDrawsByStatus = async (status: AdminDrawStatus): Promise<Draw[]> => {
+  const response = await apiClient.get<Draw[]>('/api/admin/draws', {
+    params: { status },
+  });
+  return response.data;
+};
+
+/**
+ * 2. [ADMIN] Crée un nouveau tirage.
+ * Conforme au contrat: POST /api/draws
+ */
+export const createAdminDraw = async (drawData: { operatorId: string; date: string; time: string; multipliers: Multipliers }): Promise<Draw> => {
+  const response = await apiClient.post<Draw>('/api/draws', drawData);
+  return response.data;
+};
+
+/**
+ * 3. [ADMIN] Saisit les numéros gagnants pour un tirage.
+ * Conforme au contrat: PUT /api/draws/{draw_id}/results
+ */
+export const publishDrawResults = async (drawId: string, winningNumbers: number[]): Promise<any> => {
+  const response = await apiClient.put(`/api/draws/${drawId}/results`, { winningNumbers });
+  return response.data;
+};
+
+/**
+ * 4. [ADMIN] Annule ou archive un tirage.
+ * Conforme au contrat: PATCH /api/admin/draws/{draw_id}/status
+ */
+export const updateAdminDrawStatus = async (drawId: string, status: 'cancelled' | 'archived'): Promise<Draw> => {
+  const response = await apiClient.patch<Draw>(`/api/admin/draws/${drawId}/status`, { status });
+  return response.data;
 };
