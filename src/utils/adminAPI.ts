@@ -1,48 +1,134 @@
-// src/utils/adminAPI.ts
+// src/utils/drawsAPI.ts
 
 import apiClient from '../services/apiClient';
 
-// Interface pour un utilisateur admin, basée sur la réponse du backend
-export interface AdminUser {
-  id: string; // Le backend renvoie 'id'
+// ====================================================================
+// ===== INTERFACES (Finalisées pour le contrat backend) ==============
+// ====================================================================
+
+export type Multipliers = Record<string, number>;
+
+// CORRECTION FINALE: L'interface utilise les noms de champs en camelCase 
+// confirmés par le backend. Les champs non fournis par l'API ont été retirés.
+export interface Draw {
+  id: string;
+  operatorName: string;
+  drawDate: string; // Contient la date ET l'heure au format ISO
+  status: 'upcoming' | 'completed' | 'archived' | 'cancelled';
+  winningNumbers: number[] | null;
+  // Ce champ est essentiel pour le frontend afin de mapper le tirage à un opérateur local (pour l'icône, etc.)
+  // Le backend devra peut-être ajouter ce champ à sa réponse pour que le find fonctionne de manière robuste.
+  operatorId?: string; 
+}
+
+export interface Ticket {
+  id: string;
+  userId: string;
   username: string;
-  email: string;
-  phoneNumber: string | null;
-  role: 'Super Admin' | 'Admin Financier' | 'Admin du Jeu' | 'Support Client';
-  status: 'active' | 'suspended'; // Le backend utilise des minuscules
-  createdAt: string;
-  lastLogin: string | null;
+  drawId: string;
+  betType: string;
+  numbers: string;
+  betAmount: number;
+  purchaseDate: string;
+  status: 'pending' | 'won' | 'lost';
+  winAmount?: number | null;
 }
 
-// 1. Lister tous les admins
-export const getAllAdminsAPI = async (): Promise<AdminUser[]> => {
-  // URL confirmée par le backend
-  const response = await apiClient.get<AdminUser[]>('/api/admin/users');
-  return response.data;
-};
-
-// 2. Créer un nouvel admin
-// Le type 'any' sera remplacé par une interface stricte
-interface CreateAdminPayload {
-    username: string;
-    email: string;
-    password: string;
-    role: 'Super Admin' | 'Admin Financier' | 'Admin du Jeu' | 'Support Client';
+export interface BetHistoryItem extends Ticket {
+  operatorName: string;
+  drawDate: string;
+  winningNumbers?: number[] | null;
 }
-export const createAdminAPI = async (adminData: CreateAdminPayload): Promise<AdminUser> => {
-  // URL confirmée par le backend
-  const response = await apiClient.post<AdminUser>('/api/admin/users', adminData);
+
+export interface WinNotification {
+  id: string;
+  userId: string;
+  drawId: string;
+  operatorName: string;
+  drawDate: string;
+  winningNumbers: number[];
+  playerNumbers: string;
+  winAmount: number;
+  timestamp: string;
+  read: boolean;
+}
+
+
+// ====================================================================
+// ===== FONCTIONS POUR L'INTERFACE JOUEUR (Conservées) =============
+// ====================================================================
+
+export const getUpcomingDraws = async (): Promise<Draw[]> => {
+  const response = await apiClient.get<Draw[]>('/api/draws/upcoming');
   return response.data;
 };
 
-// 3. Mettre à jour le rôle d'un admin
-export const updateAdminRoleAPI = async (adminId: string, role: string): Promise<AdminUser> => {
-  // URL confirmée par le backend
-  const response = await apiClient.put<AdminUser>(`/api/admin/users/${adminId}/role`, { role });
+export const getCompletedDraws = async (): Promise<Draw[]> => {
+  const response = await apiClient.get<Draw[]>('/api/draws/completed');
   return response.data;
 };
 
-// 4. Mettre à jour le statut d'un admin (peut être réutilisé depuis un autre fichier mais on le met ici pour la clarté)
-export const updateAdminStatusAPI = async (adminId: string, status: 'active' | 'suspended'): Promise<void> => {
-    await apiClient.put(`/api/admin/users/${adminId}/status`, { status });
+export const getDrawById = async (drawId: string): Promise<Draw> => {
+  const response = await apiClient.get<Draw>(`/api/draws/${drawId}`);
+  return response.data;
+};
+
+export const createTicket = async (ticketData: { drawId: string; betType: string; numbers: string; betAmount: number; }): Promise<{ ticket: Ticket }> => {
+  const response = await apiClient.post<{ ticket: Ticket }>('/api/tickets', ticketData);
+  return { ticket: response.data.ticket };
+};
+
+export const getBetHistory = async (): Promise<BetHistoryItem[]> => {
+  const response = await apiClient.get<BetHistoryItem[]>('/api/tickets/me');
+  return response.data;
+};
+
+export const getUserNotifications = async (): Promise<WinNotification[]> => {
+  console.warn("La fonction getUserNotifications n'est pas encore implémentée.");
+  return [];
+};
+
+export const markNotificationAsRead = async (notificationId: string): Promise<void> => {
+  await apiClient.put(`/api/notifications/${notificationId}/read`);
+};
+
+
+// =====================================================================
+// ===== FONCTIONS POUR LE PANEL ADMIN (Corrigées selon le contrat) ====
+// =====================================================================
+
+type AdminDrawStatus = 'upcoming' | 'completed' | 'archived' | 'cancelled';
+
+/**
+ * 1. [ADMIN] Récupère une liste de tirages filtrée par statut.
+ */
+export const getAdminDrawsByStatus = async (status: AdminDrawStatus): Promise<Draw[]> => {
+  const response = await apiClient.get<{ items: Draw[] }>('/api/admin/draws', {
+    params: { status },
+  });
+  return response.data.items;
+};
+
+/**
+ * 2. [ADMIN] Crée un nouveau tirage.
+ */
+export const createAdminDraw = async (drawData: { operatorId: string; date: string; time: string; multipliers: Multipliers }): Promise<Draw> => {
+  const response = await apiClient.post<Draw>('/api/draws/', drawData);
+  return response.data;
+};
+
+/**
+ * 3. [ADMIN] Saisit les numéros gagnants pour un tirage.
+ */
+export const publishDrawResults = async (drawId: string, winningNumbers: number[]): Promise<any> => {
+  const response = await apiClient.put(`/api/draws/${drawId}/results`, { winningNumbers });
+  return response.data;
+};
+
+/**
+ * 4. [ADMIN] Annule ou archive un tirage.
+ */
+export const updateAdminDrawStatus = async (drawId: string, status: 'cancelled' | 'archived'): Promise<Draw> => {
+  const response = await apiClient.patch<Draw>(`/api/admin/draws/${drawId}/status`, { status });
+  return response.data;
 };
