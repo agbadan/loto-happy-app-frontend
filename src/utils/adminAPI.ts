@@ -27,7 +27,6 @@ export const createAdmin = async (adminData: Omit<AdminUser, 'id' | 'status' | '
  * Met à jour le rôle d'un administrateur spécifique.
  */
 export const updateAdminRole = async (userId: string, role: string): Promise<AdminUser> => {
-  // CORRECTION : Utiliser le paramètre 'userId' reçu par la fonction pour construire l'URL.
   const response = await apiClient.put<AdminUser>(`/api/admin/users/${userId}/role`, { role });
   return response.data;
 };
@@ -36,7 +35,7 @@ export const updateAdminRole = async (userId: string, role: string): Promise<Adm
  * Met à jour le statut (actif/suspendu) d'un administrateur.
  */
 export const updateAdminStatus = async (userId: string, status: 'active' | 'suspended'): Promise<AdminUser> => {
-  // CORRECTION : Utiliser le paramètre 'userId' pour construire l'URL.
   const response = await apiClient.put<AdminUser>(`/api/admin/users/${userId}/status`, { status });
   return response.data;
 };
+

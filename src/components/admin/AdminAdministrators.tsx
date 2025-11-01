@@ -51,7 +51,7 @@ export function AdminAdministrators() {
     
     setIsSubmitting(true);
     try {
-      await createAdmin({ username: newUsername, email: newEmail, password: newPassword, role: newRole });
+      await createAdmin({ username: newUsername, email: newEmail, password: newPassword, role: newRole } as any);
       toast.success("Administrateur créé avec succès !");
       await fetchAdmins();
       setCreateModalOpen(false);
@@ -64,6 +64,7 @@ export function AdminAdministrators() {
     if (!selectedAdmin) return;
     setIsSubmitting(true);
     try {
+      // CORRECTION : On utilise bien 'id' comme confirmé par le backend
       await updateAdminRole(selectedAdmin.id, editRole);
       toast.success("Rôle de l'administrateur mis à jour.");
       await fetchAdmins();
@@ -77,9 +78,9 @@ export function AdminAdministrators() {
     const newStatus = admin.status === 'active' ? 'suspended' : 'active';
     toast.info("Mise à jour du statut en cours...");
     try {
+      // CORRECTION : On utilise bien 'id' comme confirmé par le backend
       await updateAdminStatus(admin.id, newStatus);
       toast.success("Statut mis à jour avec succès !");
-      // AMÉLIORATION : On ferme la modale et on rafraîchit la liste APRES le succès
       setEditModalOpen(false);
       await fetchAdmins();
     } catch (err) { toast.error("Échec de la mise à jour du statut."); }
@@ -116,6 +117,7 @@ export function AdminAdministrators() {
             <thead className="bg-muted"><tr className="border-b"><th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Utilisateur</th><th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Rôle</th><th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Statut</th><th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider">Actions</th></tr></thead>
             <tbody className="divide-y divide-border">
               {admins.map((admin) => (
+                // CORRECTION : On utilise bien 'id' pour la clé unique
                 <tr key={admin.id} className="hover:bg-accent/50">
                   <td className="px-4 py-4">
                     <div className="font-medium text-foreground">{admin.username}</div>
