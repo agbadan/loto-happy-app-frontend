@@ -8,18 +8,22 @@ import apiClient from '../services/apiClient';
 
 export type Multipliers = Record<string, number>;
 
-// CORRECTION FINALE: L'interface utilise les noms de champs en camelCase 
-// confirmés par le backend. J'ai rajouté operatorId qui n'est pas dans la réponse 
-// mais est nécessaire au frontend, le backend devra peut-être l'ajouter.
+// Interface pour un seul tirage, telle que retournée par l'API admin
 export interface Draw {
   id: string;
   operatorName: string;
   drawDate: string; // Contient la date ET l'heure au format ISO
   status: 'upcoming' | 'completed' | 'archived' | 'cancelled';
   winningNumbers: number[] | null;
-  // Ce champ est essentiel pour le frontend afin de mapper le tirage à un opérateur local (pour l'icône, etc.)
-  // Le backend devra peut-être ajouter ce champ à sa réponse.
-  operatorId: string; 
+  // Note: operatorId n'est pas dans la réponse de /api/admin/draws,
+  // mais `operatorName` est suffisant pour le mappage.
+}
+
+// --- NOUVELLE INTERFACE ---
+// Définit la structure de la réponse paginée de l'API
+export interface PaginatedDraws {
+  total: number;
+  items: Draw[];
 }
 
 export interface Ticket {
@@ -64,6 +68,8 @@ export const getUpcomingDraws = async (): Promise<Draw[]> => {
   return response.data;
 };
 
+// ... (les autres fonctions joueur restent identiques)
+
 export const getCompletedDraws = async (): Promise<Draw[]> => {
   const response = await apiClient.get<Draw[]>('/api/draws/completed');
   return response.data;
@@ -102,12 +108,19 @@ type AdminDrawStatus = 'upcoming' | 'completed' | 'archived' | 'cancelled';
 
 /**
  * 1. [ADMIN] Récupère une liste de tirages filtrée par statut.
+ * --- MODIFICATION APPLIQUÉE ICI ---
  */
-export const getAdminDrawsByStatus = async (status: AdminDrawStatus): Promise<Draw[]> => {
-  const response = await apiClient.get<{ items: Draw[] }>('/api/admin/draws', {
-    params: { status },
+export const getAdminDrawsByStatus = async (
+    status: AdminDrawStatus, 
+    skip: number = 0, 
+    limit: number = 20
+): Promise<PaginatedDraws> => {
+  // Le type de la réponse est maintenant `PaginatedDraws`
+  const response = await apiClient.get<PaginatedDraws>('/api/admin/draws', {
+    params: { status, skip, limit },
   });
-  return response.data.items;
+  // On retourne l'objet de données COMPLET (`{ total, items }`)
+  return response.data;
 };
 
 /**

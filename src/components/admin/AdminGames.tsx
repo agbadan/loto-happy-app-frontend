@@ -83,7 +83,9 @@ export function AdminGames() {
     const loadDraws = async (status: AdminDrawStatus) => {
         setIsLoading(true);
         try {
-            const { items, total } = await getAdminDrawsByStatus(status);
+// Ligne corrigée
+
+const { items, total } = (await getAdminDrawsByStatus(status)) || { items: [], total: 0 };
             setDraws(items);
             setDrawsCount(prev => ({ ...prev, [status]: total }));
         } catch (error) {
