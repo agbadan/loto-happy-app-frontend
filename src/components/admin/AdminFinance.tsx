@@ -6,10 +6,10 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../ui/alert-dialog";
-import { Input } from "../ui/input"; // NOUVEL IMPORT
+import { Input } from "../ui/input";
 import { toast } from "sonner";
 import { CheckCircle, XCircle, Wallet, Trophy, DollarSign, Users, Loader2, TrendingUp } from "lucide-react";
-// MISE À JOUR : On importe la nouvelle fonction processWithdrawalRequest
+// Assurez-vous que l'import de la fonction corrigée est bien présent
 import { getGlobalFinancialStats, getWithdrawals, processWithdrawalRequest } from "../../utils/withdrawalsAPI";
 import { Withdrawal, FinancialStats } from "../../types";
 
@@ -50,15 +50,12 @@ const WithdrawalCard = ({ request, onApprove, onReject }: { request: Withdrawal,
 export function AdminFinance() {
   const [stats, setStats] = useState<FinancialStats | null>(null);
   const [allWithdrawals, setAllWithdrawals] = useState<Withdrawal[]>([]);
-  
   const [isLoading, setIsLoading] = useState({ stats: true, withdrawals: true });
   const [error, setError] = useState<string | null>(null);
-  
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<Withdrawal | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // NOUVEL ÉTAT pour le motif du rejet
   const [rejectionReason, setRejectionReason] = useState("");
 
   const fetchAllData = async () => {
@@ -89,15 +86,17 @@ export function AdminFinance() {
   };
   
   const handleReject = (request: Withdrawal) => { 
-    console.log("Données du rejet sélectionné :", JSON.stringify(request, null, 2));
+    console.log("Données du retrait sélectionné :", JSON.stringify(request, null, 2));
     setSelectedRequest(request); 
-    setRejectionReason(""); // Réinitialiser le motif à chaque ouverture
+    setRejectionReason("");
     setShowRejectDialog(true); 
   };
 
-  // MISE À JOUR : Logique de traitement des demandes
   const confirmProcessRequest = async (action: 'approve' | 'reject') => {
-    if (!selectedRequest) return;
+    if (!selectedRequest) {
+      toast.error("Aucune demande sélectionnée.");
+      return;
+    }
 
     if (action === 'reject' && !rejectionReason.trim()) {
       toast.error("Un motif est obligatoire pour rejeter une demande.");
@@ -106,19 +105,22 @@ export function AdminFinance() {
     
     setIsSubmitting(true);
     try {
-      // On utilise la nouvelle fonction `processWithdrawalRequest`
+      // La fonction est appelée avec l'ID de l'état `selectedRequest`
+      // qui a été défini par `handleApprove` ou `handleReject`
       await processWithdrawalRequest(selectedRequest.id, action, rejectionReason);
+      
       toast.success(`Demande ${action === 'approve' ? 'approuvée' : 'rejetée'}.`);
-      await fetchAllData(); // Recharger toutes les données pour mettre à jour la UI
+      await fetchAllData();
     } catch (err: any) { 
       toast.error(err?.response?.data?.detail || "Erreur lors de la mise à jour."); 
+      console.error("Erreur API lors du traitement:", err);
     } 
     finally {
       setIsSubmitting(false);
       setShowApproveDialog(false);
       setShowRejectDialog(false);
       setSelectedRequest(null);
-      setRejectionReason(""); // Réinitialiser le motif
+      setRejectionReason("");
     }
   };
   
