@@ -3,7 +3,7 @@
 import apiClient from '../services/apiClient';
 
 // ====================================================================
-// ===== INTERFACES (Confirmées 100% conformes au backend) ==========
+// ===== INTERFACES (Mises à jour avec le nouveau statut 'pending') ====
 // ====================================================================
 
 export type Multipliers = Record<string, number>;
@@ -12,12 +12,12 @@ export interface Draw {
   id: string;
   operatorName: string;
   operatorId: string;
-  drawDate: string; // Format ISO 8601 (ex: "2024-11-05T20:00:00Z")
-  status: 'upcoming' | 'completed' | 'archived' | 'cancelled';
+  drawDate: string;
+  // MISE À JOUR : Ajout du statut 'pending'
+  status: 'upcoming' | 'pending' | 'completed' | 'archived' | 'cancelled';
   winningNumbers: number[] | null;
 }
 
-// L'interface pour la réponse paginée de l'API
 export interface PaginatedDraws {
   total: number;
   items: Draw[];
@@ -64,46 +64,40 @@ export const getUpcomingDraws = async (): Promise<Draw[]> => {
   const response = await apiClient.get<Draw[]>('/api/draws/upcoming');
   return response.data;
 };
-
 export const getCompletedDraws = async (): Promise<Draw[]> => {
   const response = await apiClient.get<Draw[]>('/api/draws/completed');
   return response.data;
 };
-
 export const getDrawById = async (drawId: string): Promise<Draw> => {
   const response = await apiClient.get<Draw>(`/api/draws/${drawId}`);
   return response.data;
 };
-
 export const createTicket = async (ticketData: { drawId: string; betType: string; numbers: string; betAmount: number; }): Promise<{ ticket: Ticket }> => {
   const response = await apiClient.post<{ ticket: Ticket }>('/api/tickets', ticketData);
   return { ticket: response.data.ticket };
 };
-
 export const getBetHistory = async (): Promise<BetHistoryItem[]> => {
   const response = await apiClient.get<BetHistoryItem[]>('/api/tickets/me');
   return response.data;
 };
-
 export const getUserNotifications = async (): Promise<WinNotification[]> => {
   console.warn("La fonction getUserNotifications n'est pas encore implémentée.");
   return [];
 };
-
 export const markNotificationAsRead = async (notificationId: string): Promise<void> => {
   await apiClient.put(`/api/notifications/${notificationId}/read`);
 };
 
 
 // =====================================================================
-// ===== FONCTIONS POUR LE PANEL ADMIN (Finalisées et 100% Corrigées) ====
+// ===== FONCTIONS POUR LE PANEL ADMIN (Finalisées et Corrigées) ====
 // =====================================================================
 
-type AdminDrawStatus = 'upcoming' | 'completed' | 'archived' | 'cancelled';
+// MISE À JOUR : Ajout du statut 'pending'
+type AdminDrawStatus = 'upcoming' | 'pending' | 'completed' | 'archived' | 'cancelled';
 
 /**
  * 1. [ADMIN] Récupère une liste de tirages filtrée par statut.
- * URL CONFIRMÉE : GET /api/admin/draws
  */
 export const getAdminDrawsByStatus = async (status: AdminDrawStatus): Promise<Draw[]> => {
   const response = await apiClient.get<PaginatedDraws>('/api/admin/draws', {
@@ -114,17 +108,14 @@ export const getAdminDrawsByStatus = async (status: AdminDrawStatus): Promise<Dr
 
 /**
  * 2. [ADMIN] Crée un nouveau tirage.
- * URL CORRIGÉE : POST /api/draws
  */
 export const createAdminDraw = async (drawData: { operatorId: string; date: string; time: string; multipliers: Multipliers }): Promise<Draw> => {
-  // L'objet drawData est déjà au bon format pour le payload, selon la documentation.
   const response = await apiClient.post<Draw>('/api/draws', drawData);
   return response.data;
 };
 
 /**
  * 3. [ADMIN] Saisit les numéros gagnants pour un tirage.
- * URL ET MÉTHODE CORRIGÉES : PUT /api/draws/{id}/results
  */
 export const publishDrawResults = async (drawId: string, winningNumbers: number[]): Promise<any> => {
   const response = await apiClient.put(`/api/draws/${drawId}/results`, { winningNumbers });
@@ -133,7 +124,6 @@ export const publishDrawResults = async (drawId: string, winningNumbers: number[
 
 /**
  * 4. [ADMIN] Annule ou archive un tirage.
- * URL CONFIRMÉE : PATCH /api/admin/draws/{id}/status
  */
 export const updateAdminDrawStatus = async (drawId: string, status: 'cancelled' | 'archived'): Promise<Draw> => {
   const response = await apiClient.patch<Draw>(`/api/admin/draws/${drawId}/status`, { status });

@@ -39,7 +39,8 @@ const getDefaultMultipliers = (): Multipliers => ({
     'PERMUTATION': 500, 'BANKA': 500, 'CHANCE_PLUS': 90, 'ANAGRAMME': 10,
 });
 
-type AdminDrawStatus = 'upcoming' | 'completed' | 'archived' | 'cancelled';
+// MISE À JOUR : Ajout du statut 'pending'
+type AdminDrawStatus = 'upcoming' | 'pending' | 'completed' | 'archived' | 'cancelled';
 
 // --- COMPOSANT PRINCIPAL ---
 export function AdminGames() {
@@ -55,11 +56,6 @@ export function AdminGames() {
         setIsLoading(true);
         try {
             const items = await getAdminDrawsByStatus(status);
-            // ===== POINT DE DEBUG CRUCIAL =====
-            // Cette ligne nous montrera dans la console du navigateur
-            // la structure exacte des données que le backend envoie.
-            console.log(`[DEBUG] Données reçues pour l'onglet "${status}":`, items);
-            // ===================================
             setDraws(items);
         } catch (error) {
             toast.error(`Impossible de charger les tirages "${status}".`);
@@ -80,7 +76,6 @@ export function AdminGames() {
                     <h1 className="text-3xl font-bold">Gestion des Jeux</h1>
                     <p className="text-muted-foreground mt-1">Créez des tirages, saisissez les résultats et consultez les archives</p>
                 </div>
-                {/* CORRECTION STYLE : Bouton principal en jaune */}
                 <Button onClick={() => setCreateModalOpen(true)} className="bg-yellow-400 text-black hover:bg-yellow-500">
                     <Plus className="mr-2 h-4 w-4" />Nouveau Tirage
                 </Button>
@@ -89,7 +84,8 @@ export function AdminGames() {
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AdminDrawStatus)}>
                 <TabsList className="grid w-full max-w-lg grid-cols-3">
                     <TabsTrigger value="upcoming">À Venir</TabsTrigger>
-                    <TabsTrigger value="completed">Résultats</TabsTrigger>
+                    {/* MISE À JOUR : L'onglet "Résultats" appelle maintenant le statut 'pending' */}
+                    <TabsTrigger value="pending">Résultats</TabsTrigger>
                     <TabsTrigger value="archived">Archives</TabsTrigger>
                 </TabsList>
 
@@ -158,8 +154,9 @@ function DrawCard({ draw, onEnterResults }: { draw: Draw; onEnterResults: () => 
                     }
                 </div>
             </div>
-            {draw.status === 'completed' && (!draw.winningNumbers || draw.winningNumbers.length === 0) && (
-                <Button size="sm" variant="outline" onClick={onEnterResults} className="bg-orange-500 hover:bg-orange-600 text-white">
+            {/* MISE À JOUR : Le bouton s'affiche maintenant pour les tirages en statut 'pending' */}
+            {draw.status === 'pending' && (
+                <Button size="sm" onClick={onEnterResults} className="bg-orange-500 hover:bg-orange-600 text-white">
                     Saisir les Résultats
                 </Button>
             )}
@@ -169,8 +166,10 @@ function DrawCard({ draw, onEnterResults }: { draw: Draw; onEnterResults: () => 
 }
 
 function EmptyState({ status, onCreateClick }: { status: AdminDrawStatus; onCreateClick: () => void; }) {
+    // MISE À JOUR : Ajout d'un message pour l'état 'pending'
     const messages = {
         upcoming: { icon: Calendar, text: "Aucun tirage à venir" },
+        pending: { icon: Trophy, text: "Aucun tirage en attente de résultat" },
         completed: { icon: Trophy, text: "Aucun résultat à afficher" },
         archived: { icon: Archive, text: "Aucune archive trouvée" },
         cancelled: { icon: Archive, text: "Aucun tirage annulé" }
@@ -181,7 +180,6 @@ function EmptyState({ status, onCreateClick }: { status: AdminDrawStatus; onCrea
         <Card className="p-12 text-center text-muted-foreground border-dashed flex flex-col items-center justify-center">
             <Icon className="h-12 w-12 mb-4" />
             <p className="mb-6 font-semibold">{text}</p>
-            {/* CORRECTION STYLE : Bouton en jaune */}
             {status === 'upcoming' && <Button onClick={onCreateClick} className="bg-yellow-400 text-black hover:bg-yellow-500">Créer un tirage</Button>}
         </Card>
     );
@@ -239,7 +237,6 @@ function CreateDrawModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onCl
                 </div>
                 <DialogFooter className="pt-4 border-t mt-auto">
                     <Button variant="ghost" onClick={onClose}>Annuler</Button>
-                    {/* CORRECTION STYLE : Bouton de confirmation en jaune */}
                     <Button onClick={handleCreate} disabled={isSubmitting} className="bg-yellow-400 text-black hover:bg-yellow-500">
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Créer le Tirage
                     </Button>
@@ -284,7 +281,6 @@ function ResultsModal({ isOpen, onClose, onSuccess, draw }: { isOpen: boolean; o
                 </div>
                 <DialogFooter>
                     <Button variant="ghost" onClick={onClose}>Annuler</Button>
-                    {/* STYLE CONFIRMÉ : Bouton de confirmation en jaune */}
                     <Button onClick={handleSave} disabled={isSubmitting} className="bg-yellow-400 text-black hover:bg-yellow-500">
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Enregistrer et Payer
                     </Button>
