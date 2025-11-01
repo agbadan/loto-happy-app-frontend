@@ -105,22 +105,18 @@ type AdminDrawStatus = 'upcoming' | 'completed' | 'archived' | 'cancelled';
  * Conforme au contrat: GET /api/admin/draws?status=...
  */
 export const getAdminDrawsByStatus = async (status: AdminDrawStatus): Promise<Draw[]> => {
-  // CORRECTION: On spécifie que le type de la réponse attendue est un objet contenant une clé "items"
-  // qui est un tableau de Draw.
   const response = await apiClient.get<{ items: Draw[] }>('/api/admin/draws', {
     params: { status },
   });
-  // CORRECTION: On retourne la propriété `items` de la réponse, qui est le tableau,
-  // et non l'objet de réponse entier.
   return response.data.items;
 };
 
 /**
  * 2. [ADMIN] Crée un nouveau tirage.
- * Conforme au contrat: POST /api/draws
+ * Conforme au contrat: POST /api/draws/
  */
 export const createAdminDraw = async (drawData: { operatorId: string; date: string; time: string; multipliers: Multipliers }): Promise<Draw> => {
-  const response = await apiClient.post<Draw>('/api/draws', drawData);
+  const response = await apiClient.post<Draw>('/api/draws/', drawData);
   return response.data;
 };
 
