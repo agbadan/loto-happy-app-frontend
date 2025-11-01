@@ -32,16 +32,17 @@ export interface WithdrawalRequest {
   processedDate?: string;
 }
 
-// Interface pour les administrateurs
 export interface AdminUser {
   id: string;
   username: string;
   email: string;
-  password: string;
+  // 'password' est retiré, il n'est pas dans la réponse de l'API
   role: 'Super Admin' | 'Admin Financier' | 'Admin du Jeu' | 'Support Client';
-  status: 'Actif' | 'Désactivé';
-  lastLogin: string;
+  status: 'active' | 'suspended'; // <-- Corrigé pour correspondre au backend
+  lastLogin: string | null;         // <-- Corrigé pour autoriser null
   createdAt: string;
+  // On ajoute phoneNumber car le backend le renvoie
+  phoneNumber: string; 
 }
 
 export interface User {
