@@ -3,21 +3,23 @@
 import apiClient from '../services/apiClient';
 
 // ====================================================================
-// ===== INTERFACES (Corrigées pour correspondre au backend) ==========
+// ===== INTERFACES (Finalisées pour le contrat backend) ==============
 // ====================================================================
 
 export type Multipliers = Record<string, number>;
 
 // CORRECTION FINALE: L'interface utilise les noms de champs en camelCase 
-// confirmés par le backend. Les champs non fournis par l'API ont été retirés.
+// confirmés par le backend. J'ai rajouté operatorId qui n'est pas dans la réponse 
+// mais est nécessaire au frontend, le backend devra peut-être l'ajouter.
 export interface Draw {
   id: string;
   operatorName: string;
   drawDate: string; // Contient la date ET l'heure au format ISO
   status: 'upcoming' | 'completed' | 'archived' | 'cancelled';
   winningNumbers: number[] | null;
-  // Note: operatorId, operatorIcon, multipliers, participants, date, time
-  // ne sont pas dans la réponse de GET /api/admin/draws, donc ils sont retirés de l'interface principale.
+  // Ce champ est essentiel pour le frontend afin de mapper le tirage à un opérateur local (pour l'icône, etc.)
+  // Le backend devra peut-être ajouter ce champ à sa réponse.
+  operatorId: string; 
 }
 
 export interface Ticket {
@@ -36,7 +38,6 @@ export interface Ticket {
 export interface BetHistoryItem extends Ticket {
   operatorName: string;
   drawDate: string;
-  // drawTime a été retiré car drawDate contient déjà l'heure
   winningNumbers?: number[] | null;
 }
 

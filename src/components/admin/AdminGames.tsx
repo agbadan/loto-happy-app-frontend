@@ -22,10 +22,14 @@ const OPERATORS_CONFIG = [
 ];
 
 const BET_TYPES_CONFIG: Record<string, { name: string; label: string }> = {
-    'NAP1': { name: 'Simple Numéro', label: 'NAP1' }, 'NAP2': { name: 'Deux Numéros', label: 'NAP2 / Two Sure' },
-    'NAP3': { name: 'Trois Numéros', label: 'NAP3' }, 'NAP4': { name: 'Quatre Numéros', label: 'NAP4' },
-    'NAP5': { name: 'Cinq Numéros', label: 'NAP5 / Perm Nap' }, 'PERMUTATION': { name: 'Combinaison', label: 'Permutation' },
-    'BANKA': { name: 'Numéro de Base', label: 'Against / Banka' }, 'CHANCE_PLUS': { name: 'Position Exacte', label: 'Chance+' },
+    'NAP1': { name: 'Simple Numéro', label: 'NAP1' },
+    'NAP2': { name: 'Deux Numéros', label: 'NAP2 / Two Sure' },
+    'NAP3': { name: 'Trois Numéros', label: 'NAP3' },
+    'NAP4': { name: 'Quatre Numéros', label: 'NAP4' },
+    'NAP5': { name: 'Cinq Numéros', label: 'NAP5 / Perm Nap' },
+    'PERMUTATION': { name: 'Combinaison', label: 'Permutation' },
+    'BANKA': { name: 'Numéro de Base', label: 'Against / Banka' },
+    'CHANCE_PLUS': { name: 'Position Exacte', label: 'Chance+' },
     'ANAGRAMME': { name: 'Numéros inversés', label: 'Anagramme / WE dans WE' },
 };
 
@@ -86,10 +90,7 @@ export function AdminGames() {
 
     const DrawList = ({ drawList }: { drawList: Draw[] }) => (
       <div className="grid gap-4">{drawList.map((draw) => {
-          // CORRECTION: On cherche l'opérateur en comparant son nom, car l'API ne renvoie pas d'ID d'opérateur
           const operator = OPERATORS_CONFIG.find(op => op.name === draw.operatorName);
-          
-          // CORRECTION: On utilise le champ `drawDate` qui contient date ET heure
           const drawDate = new Date(draw.drawDate);
           const formattedDate = !isNaN(drawDate.getTime()) ? drawDate.toLocaleDateString('fr-FR') : "Date invalide";
           const formattedTime = !isNaN(drawDate.getTime()) ? drawDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : "";
@@ -100,13 +101,11 @@ export function AdminGames() {
                   <div className="flex items-start gap-4">
                       <span className="text-3xl pt-1">{operator?.icon || '🎲'}</span>
                       <div>
-                          {/* CORRECTION: On utilise `draw.operatorName` */}
                           <h3 className="font-bold text-lg">{draw.operatorName || 'Inconnu'}</h3>
                           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
                               <div className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /><span>{formattedDate}</span></div>
                               <div className="flex items-center gap-1.5"><Clock className="h-4 w-4" /><span>{formattedTime}</span></div>
                           </div>
-                          {/* CORRECTION: On utilise `draw.winningNumbers` */}
                           {draw.winningNumbers && <p className="text-sm font-semibold mt-2 text-yellow-400">Numéros: {draw.winningNumbers.join(', ')}</p>}
                       </div>
                   </div>
@@ -139,7 +138,7 @@ export function AdminGames() {
                             </Button>
                         </div>
                     )}
-                    {isLoading ? <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground"/></div> : draws.length === 0 ? <Card className="p-12 text-center text-muted-foreground">Aucun tirage à afficher dans cette section.</Card> : <DrawList drawList={draws} />}
+                    {isLoading ? <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground"/></div> : draws.length === 0 ? <Card className="p-12 text-center text-muted-foreground">Aucun tirage à afficher.</Card> : <DrawList drawList={draws} />}
                 </div>
             </Tabs>
 
@@ -167,22 +166,11 @@ export function AdminGames() {
                             <div className="flex items-center gap-2"><Info className="h-4 w-4 text-yellow-400" /><Label className="text-base">Multiplicateurs de Gains</Label></div>
                             <p className="text-xs text-muted-foreground">Configurez les multiplicateurs pour chaque type de pari. Le gain = Mise × Multiplicateur.</p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-                                {Object.keys(BET_TYPES_CONFIG).map(key => {
-                                    const config = BET_TYPES_CONFIG[key];
-                                    return (
-                                        <div key={key}>
-                                            <Label htmlFor={key} className="text-sm font-medium">{config.name} <span className="text-xs text-muted-foreground">({config.label})</span></Label>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <Input id={key} type="number" value={multipliers[key] || ''} onChange={(e) => setMultipliers({...multipliers, [key]: Number(e.target.value)})} />
-                                                <span className="text-sm text-muted-foreground">×</span>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                                {Object.keys(BET_TYPES_CONFIG).map(key => {const config = BET_TYPES_CONFIG[key]; return (<div key={key}><Label htmlFor={key} className="text-sm font-medium">{config.name} <span className="text-xs text-muted-foreground">({config.label})</span></Label><div className="flex items-center gap-2 mt-1"><Input id={key} type="number" value={multipliers[key] || ''} onChange={(e) => setMultipliers({...multipliers, [key]: Number(e.target.value)})}/><span className="text-sm text-muted-foreground">×</span></div></div>);})}
                             </div>
                         </div>
                     </div>
-
+                    
                     <DialogFooter className="pt-4 border-t mt-auto">
                         <Button variant="outline" onClick={() => setShowCreateModal(false)}>Annuler</Button>
                         <Button onClick={handleCreateDraw} disabled={isSubmitting} className="bg-yellow-400 text-black hover:bg-yellow-500">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Créer Tirage</Button>
