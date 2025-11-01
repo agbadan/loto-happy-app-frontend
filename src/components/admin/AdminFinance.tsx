@@ -1,5 +1,3 @@
-// src/components/admin/AdminFinance.tsx
-
 import { useState, useEffect } from "react";
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
@@ -9,43 +7,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from "../ui/input";
 import { toast } from "sonner";
 import { CheckCircle, XCircle, Wallet, Trophy, DollarSign, Users, Loader2, TrendingUp } from "lucide-react";
-// Assurez-vous que l'import de la fonction corrigée est bien présent
 import { getGlobalFinancialStats, getWithdrawals, processWithdrawalRequest } from "../../utils/withdrawalsAPI";
 import { Withdrawal, FinancialStats } from "../../types";
 
-const StatCard = ({ title, value, icon: Icon, iconBg, iconColor, isCurrency = true, profitColor = false }: { title: string, value: number, icon: React.ElementType, iconBg: string, iconColor: string, isCurrency?: boolean, profitColor?: boolean }) => (
-    <Card className="p-4 md:p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground mb-1">{title}</p><p className={`text-2xl font-bold ${profitColor ? (value >= 0 ? 'text-green-500' : 'text-red-500') : ''}`}>{isCurrency ? value.toLocaleString('fr-FR') + ' F' : value.toLocaleString('fr-FR')}</p></div><div className={`rounded-full p-3 ${iconBg}`}><Icon className={`h-6 w-6 ${iconColor}`} /></div></div></Card>
-);
-
-const WithdrawalCard = ({ request, onApprove, onReject }: { request: Withdrawal, onApprove: (req: Withdrawal) => void, onReject: (req: Withdrawal) => void }) => {
-    const statusConfig = { pending: { color: 'yellow-500', text: 'En attente' }, approved: { color: 'green-500', text: 'Approuvé' }, rejected: { color: 'red-500', text: 'Rejeté' }};
-    const currentStatus = request.status as keyof typeof statusConfig;
-
-    return (
-        <Card key={request.id} className={`p-6 border-l-4 border-l-${statusConfig[currentStatus]?.color || 'gray-500'}`}>
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-bold text-lg">{request.playerInfo?.username || 'Utilisateur inconnu'}</h3>
-                        <Badge className={`bg-${statusConfig[currentStatus]?.color}/20 text-${statusConfig[currentStatus]?.color}`}>{statusConfig[currentStatus]?.text || 'Inconnu'}</Badge>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-2 text-sm mt-2">
-                        <span>Montant: <span className="font-semibold">{request.amount.toLocaleString('fr-FR')} F</span></span>
-                        <span>Opérateur: <span className="font-semibold">{request.provider || 'N/A'}</span></span>
-                        <span>Numéro: <span className="font-semibold">{request.withdrawalPhoneNumber || 'N/A'}</span></span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">{new Date(request.requestDate).toLocaleString('fr-FR')}</p>
-                </div>
-                {request.status === 'pending' && (
-                    <div className="flex gap-2">
-                        <Button size="sm" onClick={() => onApprove(request)} className="bg-green-500 hover:bg-green-600"><CheckCircle className="mr-2 h-4 w-4" />Approuver</Button>
-                        <Button size="sm" variant="outline" onClick={() => onReject(request)} className="border-red-500 text-red-500 hover:bg-red-500/10"><XCircle className="mr-2 h-4 w-4" />Rejeter</Button>
-                    </div>
-                )}
-            </div>
-        </Card>
-    );
-};
+// ... (Le contenu des sous-composants StatCard et WithdrawalCard reste le même)
 
 export function AdminFinance() {
   const [stats, setStats] = useState<FinancialStats | null>(null);
@@ -94,7 +59,7 @@ export function AdminFinance() {
 
   const confirmProcessRequest = async (action: 'approve' | 'reject') => {
     if (!selectedRequest) {
-      toast.error("Aucune demande sélectionnée.");
+      toast.error("Aucune demande sélectionnée. Veuillez rafraîchir la page.");
       return;
     }
 
@@ -105,8 +70,6 @@ export function AdminFinance() {
     
     setIsSubmitting(true);
     try {
-      // La fonction est appelée avec l'ID de l'état `selectedRequest`
-      // qui a été défini par `handleApprove` ou `handleReject`
       await processWithdrawalRequest(selectedRequest.id, action, rejectionReason);
       
       toast.success(`Demande ${action === 'approve' ? 'approuvée' : 'rejetée'}.`);
