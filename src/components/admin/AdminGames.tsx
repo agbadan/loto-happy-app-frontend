@@ -237,11 +237,32 @@ function CreateDrawModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onCl
             <DialogContent className="max-w-3xl flex flex-col max-h-[90vh]">
                 <DialogHeader>
                     <DialogTitle>Créer un Nouveau Tirage</DialogTitle>
-                    <DialogDescription>Remplissez les informations et configurez les multiplicateurs par défaut.</DialogDescription>
+                    <DialogDescription>Sélectionnez l'opérateur, la date/heure et configurez les multiplicateurs.</DialogDescription>
                 </DialogHeader>
+
+                {/* --- CORRECTION : LE FORMULAIRE A ÉTÉ RÉINTÉGRÉ ICI --- */}
                 <div className="py-4 space-y-6 overflow-y-auto pr-6">
-                    {/* Contenu du formulaire (inchangé) */}
+                    <div className="space-y-2">
+                        <Label>Opérateur *</Label>
+                        <Select value={newDraw.operatorId} onValueChange={(v) => setNewDraw({...newDraw, operatorId: v})}>
+                            <SelectTrigger><SelectValue placeholder="Choisir un opérateur..." /></SelectTrigger>
+                            <SelectContent>{OPERATORS_CONFIG.map(op => <SelectItem key={op.id} value={op.id}><div className="flex items-center gap-2"><span>{op.icon}</span><span>{op.name} ({op.country})</span></div></SelectItem>)}</SelectContent>
+                        </Select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div><Label>Date du tirage *</Label><Input type="date" value={newDraw.date} onChange={(e) => setNewDraw({...newDraw, date: e.target.value})} /></div>
+                        <div><Label>Heure du tirage *</Label><Input type="time" value={newDraw.time} onChange={(e) => setNewDraw({...newDraw, time: e.target.value})} /></div>
+                    </div>
+                    <Separator />
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2"><Info className="h-4 w-4 text-yellow-400" /><Label className="text-base">Multiplicateurs de Gains</Label></div>
+                        <p className="text-xs text-muted-foreground">Configurez les multiplicateurs pour chaque type de pari. Le gain = Mise × Multiplicateur.</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                            {Object.keys(BET_TYPES_CONFIG).map(key => {const config = BET_TYPES_CONFIG[key]; return (<div key={key}><Label htmlFor={key} className="text-sm font-medium">{config.name} <span className="text-xs text-muted-foreground">({config.label})</span></Label><div className="flex items-center gap-2 mt-1"><Input id={key} type="number" value={multipliers[key] || ''} onChange={(e) => setMultipliers({...multipliers, [key]: Number(e.target.value)})}/><span className="text-sm text-muted-foreground">×</span></div></div>);})}
+                        </div>
+                    </div>
                 </div>
+                
                 <DialogFooter className="pt-4 border-t mt-auto">
                     <Button variant="ghost" onClick={onClose}>Annuler</Button>
                     <Button onClick={handleCreate} disabled={isSubmitting}>
