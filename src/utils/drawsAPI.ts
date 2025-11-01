@@ -7,18 +7,14 @@ import apiClient from '../services/apiClient';
 // ====================================================================
 
 export type Multipliers = Record<string, number>;
-
-// Interface pour un seul tirage, telle que retournée par l'API admin
 export interface Draw {
   id: string;
   operatorName: string;
-  drawDate: string; // Contient la date ET l'heure au format ISO
+  operatorId: string; // Indispensable pour la correspondance
+  drawDate: string;
   status: 'upcoming' | 'completed' | 'archived' | 'cancelled';
   winningNumbers: number[] | null;
-  // Note: operatorId n'est pas dans la réponse de /api/admin/draws,
-  // mais `operatorName` est suffisant pour le mappage.
 }
-
 // --- NOUVELLE INTERFACE ---
 // Définit la structure de la réponse paginée de l'API
 export interface PaginatedDraws {
@@ -110,17 +106,14 @@ type AdminDrawStatus = 'upcoming' | 'completed' | 'archived' | 'cancelled';
  * 1. [ADMIN] Récupère une liste de tirages filtrée par statut.
  * --- MODIFICATION APPLIQUÉE ICI ---
  */
-export const getAdminDrawsByStatus = async (
-    status: AdminDrawStatus, 
-    skip: number = 0, 
-    limit: number = 20
-): Promise<PaginatedDraws> => {
-  // Le type de la réponse est maintenant `PaginatedDraws`
-  const response = await apiClient.get<PaginatedDraws>('/api/admin/draws', {
-    params: { status, skip, limit },
+export const getAdminDrawsByStatus = async (status: AdminDrawStatus): Promise<Draw[]> => {
+  // CORRECTION : On s'attend à un objet { items: [...] } mais la fonction doit retourner un tableau.
+  const response = await apiClient.get<{ items: Draw[] }>('/api/admin/draws', {
+    params: { status },
   });
-  // On retourne l'objet de données COMPLET (`{ total, items }`)
-  return response.data;
+  // CORRECTION CLÉ : On retourne `response.data.items` (le tableau)
+  // pour que le composant puisse faire `.map()` dessus.
+  return response.data.items;
 };
 
 /**
