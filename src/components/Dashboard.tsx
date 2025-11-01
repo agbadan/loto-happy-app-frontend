@@ -13,8 +13,8 @@ import { useAuth } from "../contexts/AuthContext";
 import { getUpcomingDraws, Draw } from "../utils/drawsAPI";
 
 
-// CORRECTION : Ajout de l'import manquant pour getOperatorById
-import { getOperatorById } from "../utils/games";
+// CORRECTION : Ajout de 'formatDrawDisplay' à la ligne d'importation
+import { getOperatorById, formatDrawDisplay } from "../utils/games";
 
 interface DashboardProps {
   onNavigateToGame: (drawId: string) => void;
