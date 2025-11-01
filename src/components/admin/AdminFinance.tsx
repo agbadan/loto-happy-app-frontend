@@ -83,11 +83,13 @@ export function AdminFinance() {
   useEffect(() => { fetchAllData(); }, []);
 
   const handleApprove = (request: Withdrawal) => { 
+    console.log("Données du retrait sélectionné :", JSON.stringify(request, null, 2));
     setSelectedRequest(request); 
     setShowApproveDialog(true); 
   };
   
   const handleReject = (request: Withdrawal) => { 
+    console.log("Données du rejet sélectionné :", JSON.stringify(request, null, 2));
     setSelectedRequest(request); 
     setRejectionReason(""); // Réinitialiser le motif à chaque ouverture
     setShowRejectDialog(true); 
