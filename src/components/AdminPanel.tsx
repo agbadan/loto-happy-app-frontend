@@ -1,97 +1,110 @@
 // src/components/AdminPanel.tsx
 
 import { useState, useEffect } from "react";
-// CORRECTION : On importe useAuth pour avoir les infos de l'utilisateur
 import { useAuth } from "../contexts/AuthContext"; 
 import { AdminDashboard } from "./admin/AdminDashboard";
 import { AdminPlayers } from "./admin/AdminPlayers";
 import { AdminResellers } from "./admin/AdminResellers";
 import { AdminGames } from "./admin/AdminGames";
 import { AdminFinance } from "./admin/AdminFinance";
-import { AdminAdministrators } from "./admin/AdminAdministrators";
-import { 
-  LayoutDashboard, Users, UsersRound, Dices, Wallet, Shield, LogOut, Menu, X
-} from "lucide-react";
+import { AdminAdministrators } from "./admin/AdminAdministrators"; // Renommé pour correspondre à votre import
+import { LayoutDashboard, Users, UsersRound, Dices, Wallet, Shield, LogOut, Menu, X } from "lucide-react";
 import { Button } from "./ui/button";
-// CORRECTION : On supprime l'import de 'getCurrentAdminRole' qui est obsolète
-// import { getCurrentAdminRole } from "../utils/auth";
 
 interface AdminPanelProps {
   onLogout: () => void;
 }
 
-type AdminScreen = 'dashboard' | 'players' | 'resellers' | 'games' | 'finance' | 'administrators' | 'access-denied';
+type AdminSection = 'dashboard' | 'players' | 'resellers' | 'games' | 'finance' | 'administrators';
+
+// --- NOUVEAU: Moteur de permissions centralisé et officiel ---
+const rolePermissions = {
+  'Support Client': ['dashboard', 'players'],
+  'Admin Financier': ['dashboard',  'resellers', 'finance'],
+  'Admin du Jeu': ['dashboard', 'games'],
+  'Super Admin': ['dashboard', 'players', 'resellers', 'games', 'finance', 'administrators'],
+};
+
+// --- NOUVEAU: Définition de l'écran de démarrage par rôle ---
+const defaultScreenForRole = {
+  'Support Client': 'players',
+  'Admin Financier': 'finance',
+  'Admin du Jeu': 'games',
+  'Super Admin': 'dashboard',
+};
+
 
 export function AdminPanel({ onLogout }: AdminPanelProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [currentScreen, setCurrentScreen] = useState<AdminScreen>('dashboard');
-
-  // --- LA CORRECTION PRINCIPALE EST ICI ---
-  // On récupère l'utilisateur et son rôle directement depuis le contexte
+  const [currentScreen, setCurrentScreen] = useState<AdminSection | 'loading'>('loading');
   const { user } = useAuth();
-  const adminRole = user?.role ?? null; // Le rôle vient de l'utilisateur connecté
+  
+  const userRole = user?.role as keyof typeof rolePermissions | undefined;
 
   useEffect(() => {
-    console.log(`[ADMIN PANEL] Rôle détecté depuis le contexte: ${adminRole}`);
-    
-    // Si l'utilisateur n'est pas un admin, on le bloque immédiatement
-    if (!adminRole || !adminRole.toLowerCase().includes('admin')) {
-      setCurrentScreen('access-denied');
-      return;
+    if (userRole) {
+      // Vérifie si le rôle est un rôle admin valide
+      if (rolePermissions[userRole]) {
+        // Définit l'écran par défaut pour ce rôle
+        const defaultScreen = defaultScreenForRole[userRole as keyof typeof defaultScreenForRole] || 'dashboard';
+        setCurrentScreen(defaultScreen as AdminSection);
+      } else {
+        // Si le rôle n'est pas dans la liste des permissions, bloque l'accès
+        setCurrentScreen('loading'); // On peut afficher l'écran 'accès refusé' ici aussi
+        onLogout(); // Déconnexion forcée pour sécurité
+      }
     }
+  }, [userRole, onLogout]);
 
-    // Définir l'écran par défaut selon le rôle
-    if (adminRole === 'Admin Financier')      setCurrentScreen('finance');
-    else if (adminRole === 'Admin du Jeu')    setCurrentScreen('games');
-    else if (adminRole === 'Support Client')  setCurrentScreen('players');
-    else                                      setCurrentScreen('dashboard'); // Super Admin ou autre
-  }, [adminRole]); // On ré-évalue si le rôle change
-
-  const hasAccessToMenu = (menuId: AdminScreen): boolean => {
-    if (!adminRole) return false;
-    if (adminRole === 'Super Admin') return true;
-    if (menuId === 'administrators') return adminRole === 'Super Admin';
-    if (menuId === 'dashboard') return true;
-    if (adminRole === 'Admin Financier') return menuId === 'finance';
-    if (adminRole === 'Admin du Jeu') return menuId === 'games';
-    if (adminRole === 'Support Client') return menuId === 'players' || menuId === 'resellers';
-    return false;
-  };
-  
-  // Le reste du code est presque identique, juste plus robuste.
-  const allMenuItems = [
-    { id: 'dashboard' as AdminScreen, label: 'Tableau de bord', icon: LayoutDashboard },
-    { id: 'players' as AdminScreen, label: 'Gestion des Joueurs', icon: Users },
-    { id: 'resellers' as AdminScreen, label: 'Gestion des Revendeurs', icon: UsersRound },
-    { id: 'games' as AdminScreen, label: 'Gestion des Jeux', icon: Dices },
-    { id: 'finance' as AdminScreen, label: 'Gestion Financière', icon: Wallet },
+  // --- Logique d'affichage simplifiée ---
+  const menuItems: { id: AdminSection; label: string; icon: React.ElementType }[] = [
+    { id: 'dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
+    { id: 'players', label: 'Gestion des Joueurs', icon: Users },
+    { id: 'resellers', label: 'Gestion des Revendeurs', icon: UsersRound },
+    { id: 'games', label: 'Gestion des Jeux', icon: Dices },
+    { id: 'finance', label: 'Gestion Financière', icon: Wallet },
+    { id: 'administrators', label: 'Gestion des Admins', icon: Shield },
   ];
-  
-  const menuItems = allMenuItems.filter(item => hasAccessToMenu(item.id));
-  if (adminRole === 'Super Admin') {
-    menuItems.push({ id: 'administrators' as AdminScreen, label: 'Gestion des Admins', icon: Shield });
-  }
 
-  const handleMenuClick = (screenId: AdminScreen) => {
+  // Filtre les menus auxquels l'utilisateur a accès
+  const accessibleMenuItems = userRole ? menuItems.filter(item => rolePermissions[userRole]?.includes(item.id)) : [];
+
+  const handleMenuClick = (screenId: AdminSection) => {
     setCurrentScreen(screenId);
     setSidebarOpen(false);
   };
 
-  // --- Affichage d'un écran de chargement ou d'accès refusé si le rôle n'est pas encore défini ---
-  if (!user || currentScreen === 'access-denied') {
+  const renderCurrentScreen = () => {
+    // Vérifie si l'utilisateur a le droit de voir l'écran actuellement sélectionné
+    if (!userRole || !rolePermissions[userRole]?.includes(currentScreen as AdminSection)) {
+      // Si l'accès est invalide, on affiche un message d'erreur ou on redirige.
+      // Le useEffect gère déjà la redirection initiale, ceci est une sécurité supplémentaire.
+      return <div className="p-8">Accès non autorisé à cette section.</div>;
+    }
+
+    switch (currentScreen) {
+      case 'dashboard': return <AdminDashboard />;
+      case 'players': return <AdminPlayers />;
+      case 'resellers': return <AdminResellers />;
+      case 'games': return <AdminGames />;
+      case 'finance': return <AdminFinance />;
+      case 'administrators': return <AdminAdministrators />;
+      default: return <AdminDashboard />;
+    }
+  };
+
+  if (currentScreen === 'loading' || !userRole) {
     return (
       <div className="flex items-center justify-center h-screen p-8 bg-background">
         <div className="text-center space-y-4">
           <Shield className="h-16 w-16 text-muted-foreground mx-auto" />
-          <h2 className="text-2xl font-bold">Accès Refusé</h2>
-          <p className="text-muted-foreground">Vous n'avez pas les permissions nécessaires pour accéder à cette section.</p>
-          <Button onClick={onLogout} className="bg-destructive text-destructive-foreground">Se déconnecter</Button>
+          <h2 className="text-2xl font-bold">Accès non autorisé</h2>
+          <p className="text-muted-foreground">Vous n'avez pas les permissions nécessaires. Redirection en cours...</p>
         </div>
       </div>
     );
   }
-
-  // --- Le JSX principal reste le même ---
+  
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
@@ -100,12 +113,12 @@ export function AdminPanel({ onLogout }: AdminPanelProps) {
           <div>
             <h1 className="text-2xl font-bold text-[#FFD700]">Lotto Happy</h1>
             <p className="text-sm text-muted-foreground">Panel Admin</p>
-            {adminRole && <p className="text-xs text-[#FFD700] mt-1 font-medium">{adminRole}</p>}
+            {userRole && <p className="text-xs text-[#FFD700] mt-1 font-medium">{userRole}</p>}
           </div>
           <button onClick={() => setSidebarOpen(false)} className="lg:hidden p-2 hover:bg-accent rounded-lg"><X className="h-5 w-5" /></button>
         </div>
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto scrollbar-visible">
-          {menuItems.map((item) => {
+          {accessibleMenuItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentScreen === item.id;
             return (
@@ -130,12 +143,7 @@ export function AdminPanel({ onLogout }: AdminPanelProps) {
           <div className="w-10" />
         </div>
         <div className="flex-1 overflow-y-auto scrollbar-visible">
-          {currentScreen === 'dashboard' && hasAccessToMenu('dashboard') && <AdminDashboard />}
-          {currentScreen === 'players' && hasAccessToMenu('players') && <AdminPlayers />}
-          {currentScreen === 'resellers' && hasAccessToMenu('resellers') && <AdminResellers />}
-          {currentScreen === 'games' && hasAccessToMenu('games') && <AdminGames />}
-          {currentScreen === 'finance' && hasAccessToMenu('finance') && <AdminFinance />}
-          {currentScreen === 'administrators' && hasAccessToMenu('administrators') && adminRole === 'Super Admin' && <AdminAdministrators />}
+          {renderCurrentScreen()}
         </div>
       </main>
     </div>
