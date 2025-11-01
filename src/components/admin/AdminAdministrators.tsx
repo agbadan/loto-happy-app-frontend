@@ -1,9 +1,8 @@
 // src/components/admin/AdminAdministrators.tsx
 
 import { useState, useEffect } from "react";
-// CORRECTION: Import des noms de fonctions corrects depuis adminAPI.ts
 import { getAdmins, createAdmin, updateAdminRole, updateAdminStatus } from "../../utils/adminAPI";
-import { AdminUser } from "../../types"; // On utilise le type centralisé
+import { AdminUser } from "../../types";
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -38,7 +37,6 @@ export function AdminAdministrators() {
   const fetchAdmins = async () => {
     setIsLoading(true); setError(null);
     try {
-      // CORRECTION: Utilisation de la nouvelle fonction getAdmins
       const data = await getAdmins();
       setAdmins(data);
     } catch (err) { setError("Impossible de charger la liste des administrateurs."); console.error(err); } 
@@ -53,7 +51,6 @@ export function AdminAdministrators() {
     
     setIsSubmitting(true);
     try {
-      // CORRECTION: Utilisation de la nouvelle fonction createAdmin
       await createAdmin({ username: newUsername, email: newEmail, password: newPassword, role: newRole });
       toast.success("Administrateur créé avec succès !");
       await fetchAdmins();
@@ -67,7 +64,6 @@ export function AdminAdministrators() {
     if (!selectedAdmin) return;
     setIsSubmitting(true);
     try {
-      // CORRECTION: Utilisation de la nouvelle fonction updateAdminRole et du champ `id`
       await updateAdminRole(selectedAdmin.id, editRole);
       toast.success("Rôle de l'administrateur mis à jour.");
       await fetchAdmins();
@@ -78,11 +74,10 @@ export function AdminAdministrators() {
   };
   
   const handleToggleStatus = async (admin: AdminUser) => {
-    const newStatus = !admin.is_active;
+    const newStatus = admin.status === 'active' ? 'suspended' : 'active';
     setEditModalOpen(false);
     toast.info("Mise à jour du statut en cours...");
     try {
-      // CORRECTION: Utilisation de la nouvelle fonction updateAdminStatus et du champ `id`
       await updateAdminStatus(admin.id, newStatus);
       toast.success("Statut mis à jour avec succès !");
       await fetchAdmins();
@@ -95,30 +90,38 @@ export function AdminAdministrators() {
     setEditModalOpen(true);
   };
   
-  const getRoleBadgeColor = (role: string) => { /* ... (inchangé) ... */ };
-  const formatDate = (dateString: string | null) => { /* ... (inchangé) ... */ };
-
+  const getRoleBadgeColor = (role: string) => {
+    switch (role) {
+      case 'Super Admin': return 'bg-red-500 hover:bg-red-600';
+      case 'Admin Financier': return 'bg-blue-500 hover:bg-blue-600';
+      case 'Admin du Jeu': return 'bg-purple-500 hover:bg-purple-600';
+      case 'Support Client': return 'bg-green-500 hover:bg-green-600';
+      default: return 'bg-gray-500 hover:bg-gray-600';
+    }
+  };
+  
   if (isLoading) { return <div className="p-8 flex justify-center items-center"><Loader2 className="h-8 w-8 animate-spin" /></div>; }
   if (error) { return <div className="p-8 text-center text-red-500">{error}</div>; }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div><h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-3"><Shield className="h-7 w-7 text-[#FFD700]" />Gestion des Administrateurs</h1><p className="text-sm text-muted-foreground mt-1">Gérez les comptes et permissions de votre équipe</p></div>
-        <Button onClick={() => setCreateModalOpen(true)} className="bg-[#FFD700] text-[#121212] hover:bg-[#FFD700]/90 w-full sm:w-auto"><UserPlus className="mr-2 h-4 w-4" />Nouvel Administrateur</Button>
+        <div><h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-3"><Shield className="h-7 w-7 text-yellow-400" />Gestion des Administrateurs</h1><p className="text-sm text-muted-foreground mt-1">Gérez les comptes et permissions de votre équipe</p></div>
+        <Button onClick={() => setCreateModalOpen(true)} className="bg-yellow-400 text-black hover:bg-yellow-500 w-full sm:w-auto"><UserPlus className="mr-2 h-4 w-4" />Nouvel Administrateur</Button>
       </div>
       <Card className="border-border bg-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-muted"><tr><th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Utilisateur</th><th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider hidden md:table-cell">Email</th><th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Rôle</th><th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider hidden lg:table-cell">Statut</th><th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider">Actions</th></tr></thead>
+            <thead className="bg-muted"><tr className="border-b"><th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Utilisateur</th><th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Rôle</th><th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Statut</th><th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider">Actions</th></tr></thead>
             <tbody className="divide-y divide-border">
               {admins.map((admin) => (
                 <tr key={admin.id} className="hover:bg-accent/50">
-                  <td className="px-4 py-4"><div className="font-medium text-foreground">{admin.username}</div></td>
-                  <td className="px-4 py-4 hidden md:table-cell"><span className="text-sm text-foreground">{admin.email}</span></td>
+                  <td className="px-4 py-4">
+                    <div className="font-medium text-foreground">{admin.username}</div>
+                    <div className="text-xs text-muted-foreground">{admin.email}</div>
+                  </td>
                   <td className="px-4 py-4"><Badge className={`${getRoleBadgeColor(admin.role)} text-white`}>{admin.role}</Badge></td>
-                  {/* CORRECTION: Utilisation du champ `is_active` */}
-                  <td className="px-4 py-4 hidden lg:table-cell"><Badge variant={admin.is_active ? 'default' : 'destructive'} className={admin.is_active ? 'bg-green-500' : ''}>{admin.is_active ? 'Actif' : 'Inactif'}</Badge></td>
+                  <td className="px-4 py-4"><Badge variant={admin.status === 'active' ? 'default' : 'destructive'} className={admin.status === 'active' ? 'bg-green-500' : ''}>{admin.status === 'active' ? 'Actif' : 'Suspendu'}</Badge></td>
                   <td className="px-4 py-4 text-right"><div className="flex justify-end gap-2"><Button size="sm" variant="outline" onClick={() => openEditModal(admin)}><Edit className="h-4 w-4" /></Button></div></td>
                 </tr>
               ))}
@@ -127,7 +130,6 @@ export function AdminAdministrators() {
         </div>
       </Card>
       
-      {/* --- MODALS (Le JSX est conservé, seule la logique de soumission a changé) --- */}
       <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
         <DialogContent className="max-w-md"><DialogHeader><DialogTitle>Créer un Nouvel Administrateur</DialogTitle><DialogDescription>Remplissez les informations du nouvel administrateur</DialogDescription></DialogHeader>
           <div className="space-y-4 py-4">
@@ -136,9 +138,10 @@ export function AdminAdministrators() {
             <div><Label htmlFor="password">Mot de passe</Label><div className="relative mt-1"><Input id="password" type={showPassword ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Minimum 8 caractères" /><button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div></div>
             <div><Label htmlFor="role">Assigner un Rôle</Label><Select value={newRole} onValueChange={(value: AdminRole) => setNewRole(value)}><SelectTrigger className="mt-1"><SelectValue /></SelectTrigger><SelectContent>{ADMIN_ROLES.map(role => <SelectItem key={role} value={role}>{role}</SelectItem>)}</SelectContent></Select></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setCreateModalOpen(false)}>Annuler</Button><Button onClick={handleCreateAdmin} disabled={isSubmitting} className="bg-[#FFD700] text-[#121212] hover:bg-[#FFD700]/90">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Créer le compte</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setCreateModalOpen(false)}>Annuler</Button><Button onClick={handleCreateAdmin} disabled={isSubmitting} className="bg-yellow-400 text-black hover:bg-yellow-500">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Créer le compte</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+      
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
         <DialogContent className="max-w-md"><DialogHeader><DialogTitle>Modifier: {selectedAdmin?.username}</DialogTitle><DialogDescription>Modifiez les informations de {selectedAdmin?.username}</DialogDescription></DialogHeader>
           {selectedAdmin && (
@@ -146,10 +149,14 @@ export function AdminAdministrators() {
               <div><Label>Nom d'utilisateur</Label><p className="text-sm text-muted-foreground mt-1">{selectedAdmin.username}</p></div>
               <div><Label>Email</Label><p className="text-sm text-muted-foreground mt-1">{selectedAdmin.email}</p></div>
               <div><Label htmlFor="edit-role">Rôle</Label><Select value={editRole} onValueChange={(value: AdminRole) => setEditRole(value)}><SelectTrigger className="mt-1"><SelectValue /></SelectTrigger><SelectContent>{ADMIN_ROLES.map(role => <SelectItem key={role} value={role}>{role}</SelectItem>)}</SelectContent></Select></div>
-              <div className="pt-2 border-t border-border"><Button variant="outline" onClick={() => handleToggleStatus(selectedAdmin)} className={`w-full ${selectedAdmin.is_active ? 'text-red-500' : 'text-green-500'}`}>{selectedAdmin.is_active ? 'Suspendre le compte' : 'Réactiver le compte'}</Button></div>
+              <div className="pt-2 border-t border-border">
+                <Button variant="outline" onClick={() => handleToggleStatus(selectedAdmin)} className={`w-full ${selectedAdmin.status === 'active' ? 'text-red-500 border-red-500 hover:bg-red-500/10' : 'text-green-500 border-green-500 hover:bg-green-500/10'}`}>
+                  {selectedAdmin.status === 'active' ? 'Suspendre le compte' : 'Réactiver le compte'}
+                </Button>
+              </div>
             </div>
           )}
-          <DialogFooter><Button variant="outline" onClick={() => { setEditModalOpen(false); setSelectedAdmin(null); }}>Annuler</Button><Button onClick={handleEditAdmin} disabled={isSubmitting} className="bg-[#FFD700] text-[#121212] hover:bg-[#FFD700]/90">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Enregistrer</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => { setEditModalOpen(false); setSelectedAdmin(null); }}>Annuler</Button><Button onClick={handleEditAdmin} disabled={isSubmitting} className="bg-yellow-400 text-black hover:bg-yellow-500">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Enregistrer</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
