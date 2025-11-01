@@ -20,7 +20,7 @@ export interface PlayerTransaction {
 
 // Interface pour les demandes de retrait
 export interface WithdrawalRequest {
-  id: string;
+  _id: string;
   userId: string;
   username: string;
   phoneNumber: string; // Numéro du joueur

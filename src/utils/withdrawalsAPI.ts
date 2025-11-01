@@ -62,7 +62,7 @@ export const processWithdrawalRequest = async (
 // Note: Le type WithdrawalRequest est peut-être redondant si vous avez déjà un type Withdrawal global dans src/types.ts
 // Vous pourriez envisager de les fusionner si leurs structures sont identiques.
 export interface WithdrawalRequest {
-  id: string;
+  _id: string;
   amount: number;
   status: 'pending' | 'approved' | 'rejected';
   requestDate: string;
