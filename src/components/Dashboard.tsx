@@ -8,12 +8,9 @@ import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Clock, Calendar, TrendingUp, Trophy, Loader2 } from "lucide-react";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 import { useAuth } from "../contexts/AuthContext";
 import { getUpcomingDraws, Draw } from "../utils/drawsAPI";
-
-
-// CORRECTION : Ajout de 'formatDrawDisplay' à la ligne d'importation
 import { getOperatorById, formatDrawDisplay } from "../utils/games";
 
 interface DashboardProps {
@@ -24,12 +21,8 @@ interface DashboardProps {
   playBalance?: number;
   winningsBalance?: number;
   onRecharge: (amount: number) => void;
-  onLogout: () => void; // Ajout de onLogout pour la cohérence
+  onLogout: () => void;
 }
-
-
-
-
 
 export function Dashboard({
   onNavigateToGame,
@@ -39,17 +32,16 @@ export function Dashboard({
   playBalance = 0,
   winningsBalance = 0,
   onRecharge,
-  onLogout, // CORRECTION : Prop ajoutée
+  onLogout,
 }: DashboardProps) {
   const { user } = useAuth();
   const [rechargeOpen, setRechargeOpen] = useState(false);
   const [availableDraws, setAvailableDraws] = useState<Draw[]>([]);
   const [featuredDraw, setFeaturedDraw] = useState<Draw | null>(null);
-  const [countdownTime, setCountdownTime] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const [countdownTime, setCountdownTime] = useState({ hours: 0, minutes: 0, seconds: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  
   useEffect(() => {
     const loadDraws = async () => {
       setLoading(true);
@@ -57,18 +49,23 @@ export function Dashboard({
       
       try {
         const draws = await getUpcomingDraws();
-        
         const now = new Date();
+        
+        // ====================== DÉBUT DE LA CORRECTION FINALE ======================
+        // On utilise `draw.date` et `draw.time` comme confirmé par l'API Backend.
         const validDraws = draws
           .filter(draw => {
-            const drawDateTime = new Date(`${draw.date}T${draw.time}`);
+            // On combine les champs pour créer une date valide. 
+            // Ajouter ':00Z' force l'interprétation en UTC pour éviter les pbs de fuseaux horaires.
+            const drawDateTime = new Date(`${draw.date}T${draw.time}:00Z`);
             return drawDateTime.getTime() > now.getTime();
           })
           .sort((a, b) => {
-            const dateA = new Date(`${a.date}T${a.time}`);
-            const dateB = new Date(`${b.date}T${b.time}`);
+            const dateA = new Date(`${a.date}T${a.time}:00Z`);
+            const dateB = new Date(`${b.date}T${b.time}:00Z`);
             return dateA.getTime() - dateB.getTime();
           });
+        // ======================= FIN DE LA CORRECTION FINALE =======================
         
         setAvailableDraws(validDraws);
         setFeaturedDraw(validDraws[0] || null);
@@ -92,48 +89,44 @@ export function Dashboard({
   useEffect(() => {
     if (!featuredDraw) return;
 
-    let hasExpired = false;
-
     const updateCountdown = () => {
       const now = new Date();
-      const drawDateTime = new Date(`${featuredDraw.date}T${featuredDraw.time}`);
+      // CORRECTION : Utilisation de `featuredDraw.date` et `featuredDraw.time`
+      const drawDateTime = new Date(`${featuredDraw.date}T${featuredDraw.time}:00Z`);
       const diff = drawDateTime.getTime() - now.getTime();
       
-      if (diff <= 0 && !hasExpired) {
-        hasExpired = true;
+      if (diff <= 0) {
         setCountdownTime({ hours: 0, minutes: 0, seconds: 0 });
-        
+        // Re-filtrer les tirages pour enlever celui qui vient d'expirer
         setTimeout(() => {
-          const validDraws = getValidDraws();
-          setAvailableDraws(validDraws);
-          setFeaturedDraw(validDraws[0] || null);
-        }, 500);
+            setAvailableDraws(prev => prev.filter(d => d.id !== featuredDraw.id));
+            setFeaturedDraw(availableDraws.find(d => d.id !== featuredDraw.id) || null);
+        }, 1000);
         return;
       }
       
-      if (diff > 0) {
-        const totalSeconds = Math.floor(diff / 1000);
-        const h = Math.floor(totalSeconds / 3600);
-        const m = Math.floor((totalSeconds % 3600) / 60);
-        const s = totalSeconds % 60;
-        
-        setCountdownTime({ hours: h, minutes: m, seconds: s });
-      }
+      const totalSeconds = Math.floor(diff / 1000);
+      const h = Math.floor(totalSeconds / 3600);
+      const m = Math.floor((totalSeconds % 3600) / 60);
+      const s = totalSeconds % 60;
+      
+      setCountdownTime({ hours: h, minutes: m, seconds: s });
     };
 
     updateCountdown();
     const timer = setInterval(updateCountdown, 1000);
     return () => clearInterval(timer);
-  }, [featuredDraw]);
+  }, [featuredDraw, availableDraws]);
 
   // État de chargement
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background flex flex-col">
         <Header
           balance={playBalance}
           onRecharge={() => setRechargeOpen(true)}
           onProfile={onNavigateToProfile}
+          onLogout={onLogout}
         />
         <main className="container px-3 sm:px-4 py-6 sm:py-8 flex-1 flex flex-col items-center justify-center">
           <div className="flex flex-col items-center gap-4">
@@ -151,11 +144,12 @@ export function Dashboard({
   // État d'erreur
   if (error) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background flex flex-col">
         <Header
           balance={playBalance}
           onRecharge={() => setRechargeOpen(true)}
           onProfile={onNavigateToProfile}
+          onLogout={onLogout}
         />
         <main className="container px-3 sm:px-4 py-6 sm:py-8 flex-1 flex flex-col items-center justify-center">
           <Card className="border-destructive/50 bg-card p-6 sm:p-8 text-center max-w-md w-full">
@@ -173,17 +167,16 @@ export function Dashboard({
   }
 
   // Aucun tirage disponible
-  if (availableDraws.length === 0) {
+  if (availableDraws.length === 0 && !loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background flex flex-col">
         <Header
           balance={playBalance}
           onRecharge={() => setRechargeOpen(true)}
           onProfile={onNavigateToProfile}
+          onLogout={onLogout}
         />
-
-{user && <WinNotificationPanel userId={user.id} />}
-
+        {user && <WinNotificationPanel userId={user.id} />}
         <main className="container px-3 sm:px-4 py-6 sm:py-8 flex-1 flex flex-col items-center justify-center">
           <Card className="border-border bg-card p-6 sm:p-8 text-center max-w-md w-full">
             <Calendar className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-3 sm:mb-4 text-muted-foreground" />
@@ -196,9 +189,7 @@ export function Dashboard({
             </p>
           </Card>
         </main>
-
-        <Footer />
-
+        <Footer onNavigateToResults={onNavigateToResults} />
         <RechargeModal 
           open={rechargeOpen} 
           onClose={() => setRechargeOpen(false)} 
@@ -208,29 +199,27 @@ export function Dashboard({
       </div>
     );
   }
-
+  
   const featuredOperator = featuredDraw ? getOperatorById(featuredDraw.operatorId) : null;
-  const featuredDrawInfo = featuredDraw ? formatDrawDisplay(featuredDraw) : null;
-
+  
   return (
     <div className="min-h-screen bg-background">
       <Header
         balance={playBalance}
         onRecharge={() => setRechargeOpen(true)}
         onProfile={onNavigateToProfile}
+        onLogout={onLogout}
       />
-
-      {/* CORRECTION : Utiliser user.id au lieu de la variable inexistante userId */}
+      
       {user?.id && <WinNotificationPanel userId={user.id} />}
 
       <main className="container px-3 sm:px-4 py-6 sm:py-8 flex-1 flex flex-col">
         {/* SECTION 1 : Tirage Vedette */}
-        {featuredDraw && featuredOperator && featuredDrawInfo && (
+        {featuredDraw && featuredOperator && (
           <section className="mb-8 sm:mb-12 md:mb-16">
-            <Card className="relative overflow-hidden border-none gradient-orange-violet confetti-bg">
+             <Card className="relative overflow-hidden border-none gradient-orange-violet confetti-bg">
               <div className="relative z-10 p-4 sm:p-6 md:p-8 text-center">
                 <div className="mx-auto max-w-3xl space-y-4 sm:space-y-6">
-                  {/* Titre */}
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
                     <span className="text-3xl sm:text-4xl md:text-5xl">{featuredOperator.icon}</span>
                     <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-5xl font-bold text-white break-words text-center">
@@ -238,7 +227,6 @@ export function Dashboard({
                     </h1>
                   </div>
                   
-                  {/* Info Prix */}
                   <div className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/90 text-center">
                     <div className="text-sm sm:text-base md:text-xl">{featuredOperator.country}</div>
                     <div className="font-bold text-[#FFD700] text-lg sm:text-xl md:text-2xl break-words mt-2">
@@ -247,13 +235,13 @@ export function Dashboard({
                     </div>
                   </div>
 
-                  {/* Info Prochain Tirage */}
                   <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 max-w-md mx-auto">
                     <div className="flex flex-col xs:flex-row items-center justify-center gap-1 xs:gap-2 text-white/90 mb-2">
-                      <div className="flex items-center gap-2">
+                       <div className="flex items-center gap-2">
                         <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
                         <span className="text-xs sm:text-sm">
-                          {new Date(featuredDraw.date).toLocaleDateString('fr-FR', { 
+                           {/* CORRECTION : `new Date` a besoin de la date complète pour être fiable */}
+                          {new Date(`${featuredDraw.date}T00:00:00`).toLocaleDateString('fr-FR', { 
                             weekday: 'long', 
                             day: 'numeric', 
                             month: 'long' 
@@ -263,10 +251,10 @@ export function Dashboard({
                     </div>
                     <div className="flex items-center justify-center gap-1 xs:gap-2 text-white mb-2 sm:mb-3">
                       <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+                       {/* CORRECTION : On affiche directement le champ `time` */}
                       <span className="text-xs sm:text-sm">Tirage à {featuredDraw.time}</span>
                     </div>
                     
-                    {/* Countdown */}
                     <div className="flex justify-center gap-2 sm:gap-3">
                       {[
                         { label: "Heures", value: countdownTime.hours },
@@ -292,37 +280,6 @@ export function Dashboard({
                   >
                     Jouer Maintenant
                   </Button>
-
-                  {/* Carte des Soldes */}
-                  <div className="mt-6 sm:mt-8 grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-4 max-w-2xl mx-auto">
-                    <Card className="border-border bg-card/80 backdrop-blur-sm p-3 sm:p-4">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs sm:text-sm text-muted-foreground">Solde de Jeu</p>
-                          <p className="text-base sm:text-xl md:text-2xl font-bold text-foreground break-words">
-                            {playBalance.toLocaleString('fr-FR')} F
-                          </p>
-                        </div>
-                        <div className="rounded-full bg-[#FFD700]/10 p-2 sm:p-3 flex-shrink-0">
-                          <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-[#FFD700]" />
-                        </div>
-                      </div>
-                    </Card>
-
-                    <Card className="border-border bg-card/80 backdrop-blur-sm p-3 sm:p-4">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs sm:text-sm text-muted-foreground">Solde des Gains</p>
-                          <p className="text-base sm:text-xl md:text-2xl font-bold text-foreground break-words">
-                            {winningsBalance.toLocaleString('fr-FR')} F
-                          </p>
-                        </div>
-                        <div className="rounded-full bg-[#00A651]/10 p-2 sm:p-3 flex-shrink-0">
-                          <TrendingUp className="h-6 w-6 text-[#00A651]" />
-                        </div>
-                      </div>
-                    </Card>
-                  </div>
                 </div>
               </div>
             </Card>
@@ -346,9 +303,9 @@ export function Dashboard({
                 const operator = getOperatorById(draw.operatorId);
                 if (!operator) return null;
                 
-                const drawDate = new Date(`${draw.date}T${draw.time}`);
+                const drawDateObj = new Date(`${draw.date}T${draw.time}:00Z`);
                 const now = new Date();
-                const diff = drawDate.getTime() - now.getTime();
+                const diff = drawDateObj.getTime() - now.getTime();
                 
                 let countdown = "Bientôt";
                 if (diff > 0) {
@@ -360,9 +317,13 @@ export function Dashboard({
                     countdown = `Dans ${days}j ${hours}h`;
                   } else if (hours > 0) {
                     countdown = `Dans ${hours}h ${minutes}min`;
-                  } else {
+                  } else if (minutes > 0) {
                     countdown = `Dans ${minutes}min`;
+                  } else {
+                    countdown = `Moins d'une min`;
                   }
+                } else {
+                    countdown = "Terminé"
                 }
                 
                 return (
@@ -377,7 +338,6 @@ export function Dashboard({
                     />
                     
                     <div className="relative p-6">
-                      {/* Header */}
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
                           <span className="text-4xl">{operator.icon}</span>
@@ -392,12 +352,11 @@ export function Dashboard({
                         </div>
                       </div>
 
-                      {/* Date et Heure */}
                       <div className="space-y-2 mb-4">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="h-4 w-4" />
                           <span>
-                            {drawDate.toLocaleDateString('fr-FR', { 
+                            {new Date(`${draw.date}T00:00:00`).toLocaleDateString('fr-FR', { 
                               weekday: 'short', 
                               day: 'numeric', 
                               month: 'short' 
@@ -410,19 +369,10 @@ export function Dashboard({
                         </div>
                       </div>
 
-                      {/* Countdown */}
                       <Badge className="mb-4 bg-[#FFD700]/20 text-[#FFD700] border-[#FFD700]/30">
                         {countdown}
                       </Badge>
-
-                      {/* Participants */}
-                      {draw.participants !== undefined && draw.participants > 0 && (
-                        <p className="text-xs text-muted-foreground mb-4">
-                          {draw.participants} participant{draw.participants > 1 ? 's' : ''}
-                        </p>
-                      )}
-
-                      {/* Button */}
+                      
                       <Button 
                         className="w-full bg-[#FFD700] text-[#121212] hover:bg-[#FFD700]/90"
                         onClick={(e) => {
@@ -440,11 +390,10 @@ export function Dashboard({
           </section>
         )}
 
-        {/* SECTION 3 : Fil des Gagnants */}
         <WinnerFeed onNavigateToResults={onNavigateToResults} />
       </main>
 
-      <Footer />
+      <Footer onNavigateToResults={onNavigateToResults} />
 
       <RechargeModal 
         open={rechargeOpen} 
