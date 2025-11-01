@@ -12,6 +12,10 @@ import { toast } from "sonner@2.0.3";
 import { useAuth } from "../contexts/AuthContext";
 import { getUpcomingDraws, Draw } from "../utils/drawsAPI";
 
+
+// CORRECTION : Ajout de l'import manquant pour getOperatorById
+import { getOperatorById } from "../utils/games";
+
 interface DashboardProps {
   onNavigateToGame: (drawId: string) => void;
   onNavigateToProfile: () => void;
@@ -20,7 +24,12 @@ interface DashboardProps {
   playBalance?: number;
   winningsBalance?: number;
   onRecharge: (amount: number) => void;
+  onLogout: () => void; // Ajout de onLogout pour la cohérence
 }
+
+
+
+
 
 export function Dashboard({
   onNavigateToGame,
