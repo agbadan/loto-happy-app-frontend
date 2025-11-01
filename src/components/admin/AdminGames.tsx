@@ -11,10 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Separator } from "../ui/separator";
 import { toast } from "sonner";
 import { Plus, Calendar, Trophy, Clock, Info, Loader2, Archive } from "lucide-react";
-// Assurez-vous que l'importation de drawsAPI est correcte par rapport à votre structure de fichiers
-import { Draw, Multipliers, getAdminDrawsByStatus, createAdminDraw, publishDrawResults } from "../../utils/drawsAPI"; 
+import { Draw, Multipliers, getAdminDrawsByStatus, createAdminDraw, publishDrawResults } from "../../utils/drawsAPI";
 
-// --- CONFIGURATIONS (Conformes au frontend) ---
+// --- CONFIGURATIONS ---
 const OPERATORS_CONFIG = [
     { id: 'benin-lotto', name: 'Bénin Lotto', icon: '🇧🇯', country: 'Bénin' },
     { id: 'lotto-kadoo-togo', name: 'Lotto Kadoo', icon: '🇹🇬', country: 'Togo' },
@@ -56,6 +55,11 @@ export function AdminGames() {
         setIsLoading(true);
         try {
             const items = await getAdminDrawsByStatus(status);
+            // ===== POINT DE DEBUG CRUCIAL =====
+            // Cette ligne nous montrera dans la console du navigateur
+            // la structure exacte des données que le backend envoie.
+            console.log(`[DEBUG] Données reçues pour l'onglet "${status}":`, items);
+            // ===================================
             setDraws(items);
         } catch (error) {
             toast.error(`Impossible de charger les tirages "${status}".`);
@@ -76,6 +80,7 @@ export function AdminGames() {
                     <h1 className="text-3xl font-bold">Gestion des Jeux</h1>
                     <p className="text-muted-foreground mt-1">Créez des tirages, saisissez les résultats et consultez les archives</p>
                 </div>
+                {/* CORRECTION STYLE : Bouton principal en jaune */}
                 <Button onClick={() => setCreateModalOpen(true)} className="bg-yellow-400 text-black hover:bg-yellow-500">
                     <Plus className="mr-2 h-4 w-4" />Nouveau Tirage
                 </Button>
@@ -176,7 +181,7 @@ function EmptyState({ status, onCreateClick }: { status: AdminDrawStatus; onCrea
         <Card className="p-12 text-center text-muted-foreground border-dashed flex flex-col items-center justify-center">
             <Icon className="h-12 w-12 mb-4" />
             <p className="mb-6 font-semibold">{text}</p>
-            {/* CORRECTION STYLE : Le bouton "Créer un tirage" est maintenant jaune */}
+            {/* CORRECTION STYLE : Bouton en jaune */}
             {status === 'upcoming' && <Button onClick={onCreateClick} className="bg-yellow-400 text-black hover:bg-yellow-500">Créer un tirage</Button>}
         </Card>
     );
@@ -234,7 +239,7 @@ function CreateDrawModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onCl
                 </div>
                 <DialogFooter className="pt-4 border-t mt-auto">
                     <Button variant="ghost" onClick={onClose}>Annuler</Button>
-                    {/* CORRECTION STYLE : Le bouton "Créer le Tirage" est maintenant jaune */}
+                    {/* CORRECTION STYLE : Bouton de confirmation en jaune */}
                     <Button onClick={handleCreate} disabled={isSubmitting} className="bg-yellow-400 text-black hover:bg-yellow-500">
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Créer le Tirage
                     </Button>
@@ -279,7 +284,7 @@ function ResultsModal({ isOpen, onClose, onSuccess, draw }: { isOpen: boolean; o
                 </div>
                 <DialogFooter>
                     <Button variant="ghost" onClick={onClose}>Annuler</Button>
-                    {/* STYLE CONFIRMÉ : Le bouton "Enregistrer et Payer" reste jaune */}
+                    {/* STYLE CONFIRMÉ : Bouton de confirmation en jaune */}
                     <Button onClick={handleSave} disabled={isSubmitting} className="bg-yellow-400 text-black hover:bg-yellow-500">
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Enregistrer et Payer
                     </Button>

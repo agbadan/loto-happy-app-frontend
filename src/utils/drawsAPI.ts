@@ -96,53 +96,46 @@ export const markNotificationAsRead = async (notificationId: string): Promise<vo
 
 
 // =====================================================================
-// ===== FONCTIONS POUR LE PANEL ADMIN (Finalisées et Corrigées) ====
+// ===== FONCTIONS POUR LE PANEL ADMIN (Finalisées et 100% Corrigées) ====
 // =====================================================================
 
 type AdminDrawStatus = 'upcoming' | 'completed' | 'archived' | 'cancelled';
 
 /**
  * 1. [ADMIN] Récupère une liste de tirages filtrée par statut.
+ * URL CONFIRMÉE : GET /api/admin/draws
  */
 export const getAdminDrawsByStatus = async (status: AdminDrawStatus): Promise<Draw[]> => {
-  // CORRECTION : On utilise l'interface PaginatedDraws pour typer la réponse
   const response = await apiClient.get<PaginatedDraws>('/api/admin/draws', {
     params: { status },
   });
-  // La logique reste la même : on retourne bien le tableau `items`
   return response.data.items;
 };
 
 /**
  * 2. [ADMIN] Crée un nouveau tirage.
+ * URL CORRIGÉE : POST /api/draws
  */
 export const createAdminDraw = async (drawData: { operatorId: string; date: string; time: string; multipliers: Multipliers }): Promise<Draw> => {
-  const { operatorId, date, time, multipliers } = drawData;
-  // CORRECTION : On construit le payload manuellement pour être sûr du format attendu par le backend.
-  const payload = {
-    operatorId: operatorId,
-    drawDate: `${date}T${time}:00Z`, // On combine date et heure en format ISO 8601
-    multipliers: multipliers,
-  };
-  // CORRECTION : L'endpoint admin correct est '/api/admin/draws'
-  const response = await apiClient.post<Draw>('/api/admin/draws', payload);
+  // L'objet drawData est déjà au bon format pour le payload, selon la documentation.
+  const response = await apiClient.post<Draw>('/api/draws', drawData);
   return response.data;
 };
 
 /**
- * 3. [ADMIN] Saisit les numéros gagnants pour un tirage et publie les résultats.
+ * 3. [ADMIN] Saisit les numéros gagnants pour un tirage.
+ * URL ET MÉTHODE CORRIGÉES : PUT /api/draws/{id}/results
  */
 export const publishDrawResults = async (drawId: string, winningNumbers: number[]): Promise<any> => {
-  // CORRECTION : L'endpoint admin correct est '/api/admin/draws/{id}/publish-results' avec la méthode POST
-  const response = await apiClient.post(`/api/admin/draws/${drawId}/publish-results`, { winningNumbers });
+  const response = await apiClient.put(`/api/draws/${drawId}/results`, { winningNumbers });
   return response.data;
 };
 
 /**
  * 4. [ADMIN] Annule ou archive un tirage.
+ * URL CONFIRMÉE : PATCH /api/admin/draws/{id}/status
  */
 export const updateAdminDrawStatus = async (drawId: string, status: 'cancelled' | 'archived'): Promise<Draw> => {
-  // CORRECTION : L'endpoint admin correct est '/api/admin/draws/{id}/status'
   const response = await apiClient.patch<Draw>(`/api/admin/draws/${drawId}/status`, { status });
   return response.data;
 };
