@@ -6,10 +6,8 @@ import apiClient from '../services/apiClient';
 // ===== INTERFACES (Conservées et Mises à Jour) ======================
 // ====================================================================
 
-// Type pour les multiplicateurs, requis par la création de tirage admin.
 export type Multipliers = Record<string, number>;
 
-// Interface principale pour un Tirage, avec tous les statuts possibles.
 export interface Draw {
   id: string;
   operatorId: string;
@@ -107,10 +105,14 @@ type AdminDrawStatus = 'upcoming' | 'completed' | 'archived' | 'cancelled';
  * Conforme au contrat: GET /api/admin/draws?status=...
  */
 export const getAdminDrawsByStatus = async (status: AdminDrawStatus): Promise<Draw[]> => {
-  const response = await apiClient.get<Draw[]>('/api/admin/draws', {
+  // CORRECTION: On spécifie que le type de la réponse attendue est un objet contenant une clé "items"
+  // qui est un tableau de Draw.
+  const response = await apiClient.get<{ items: Draw[] }>('/api/admin/draws', {
     params: { status },
   });
-  return response.data;
+  // CORRECTION: On retourne la propriété `items` de la réponse, qui est le tableau,
+  // et non l'objet de réponse entier.
+  return response.data.items;
 };
 
 /**
