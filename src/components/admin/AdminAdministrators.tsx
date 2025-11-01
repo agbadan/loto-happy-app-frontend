@@ -10,7 +10,7 @@ import { Label } from "../ui/label";
 import { Badge } from "../ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { Shield, UserPlus, Edit, Eye, EyeOff, Calendar, Loader2 } from "lucide-react";
+import { Shield, UserPlus, Edit, Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 const ADMIN_ROLES = ['Support Client', 'Admin du Jeu', 'Admin Financier', 'Super Admin'] as const;
@@ -75,11 +75,12 @@ export function AdminAdministrators() {
   
   const handleToggleStatus = async (admin: AdminUser) => {
     const newStatus = admin.status === 'active' ? 'suspended' : 'active';
-    setEditModalOpen(false);
     toast.info("Mise à jour du statut en cours...");
     try {
       await updateAdminStatus(admin.id, newStatus);
       toast.success("Statut mis à jour avec succès !");
+      // AMÉLIORATION : On ferme la modale et on rafraîchit la liste APRES le succès
+      setEditModalOpen(false);
       await fetchAdmins();
     } catch (err) { toast.error("Échec de la mise à jour du statut."); }
   };
