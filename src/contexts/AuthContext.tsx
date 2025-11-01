@@ -1,90 +1,108 @@
 // src/contexts/AuthContext.tsx
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-// On importe les fonctions renommées pour éviter les conflits de noms
+import apiClient from '../services/apiClient';
 import { 
-  User, 
-  getCurrentUser, 
   loginUser as apiLogin, 
   registerUser as apiRegister 
 } from '../utils/authAPI';
-// CORRECTION : Les fonctions de token viennent de leur propre fichier, pas de apiClient.
-import { getToken, saveToken, removeToken } from '../utils/tokenStorage'; // Assure-toi que ce fichier existe
+import { getToken, saveToken, removeToken } from '../utils/tokenStorage';
 
-// Interface simplifiée : plus besoin de 'token' ou 'error' ici.
+// Définition du type User complet, aligné avec la réponse de /api/auth/me
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  phoneNumber: string;
+  role: 'player' | 'admin' | 'reseller';
+  status: string;
+  createdAt: string;
+  lastLogin: string;
+  balanceGame: number;
+  balanceWinnings: number;
+}
+
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (credentials: { emailOrPhone: string; password: string }) => Promise<void>;
   register: (userData: any) => Promise<void>;
   logout: () => void;
-  // Les autres fonctions comme refreshUser et loginWithGoogle peuvent être ajoutées ici si besoin.
+  refreshUser: () => Promise<void>; // Fonction pour rafraîchir les soldes
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  // C'est le seul état de chargement dont nous avons besoin.
   const [isLoading, setIsLoading] = useState(true);
 
-  // Ce `useEffect` s'exécute une seule fois au démarrage de l'application.
+  // Fonction centrale pour récupérer les données de l'utilisateur
+  const fetchUser = async () => {
+    try {
+      const response = await apiClient.get<User>('/api/auth/me');
+      setUser(response.data);
+    } catch (error) {
+      console.error("Échec de la récupération de l'utilisateur.", error);
+      // Si le token est invalide, on déconnecte
+      setUser(null);
+      removeToken();
+    }
+  };
+
   useEffect(() => {
     const initializeAuth = async () => {
-      const token = getToken(); // On récupère le token depuis le stockage.
+      const token = getToken();
       if (token) {
-        try {
-          // CORRECTION: getCurrentUser n'a plus besoin du token en argument.
-          const userData = await getCurrentUser(); 
-          setUser(userData);
-        } catch (error) {
-          // Si le token est invalide (expiré, etc.), on le supprime.
-          console.error("Échec de l'authentification avec le token existant.", error);
-          removeToken();
-        }
+        await fetchUser();
       }
-      setIsLoading(false); // On a fini le chargement initial.
+      setIsLoading(false);
     };
-    
     initializeAuth();
-  }, []); // Le tableau de dépendances vide signifie "exécuter une seule fois".
+  }, []);
 
   const login = async (credentials: { emailOrPhone: string; password: string }) => {
     setIsLoading(true);
     try {
-      const { user, token } = await apiLogin(credentials);
-      saveToken(token); // 1. Sauvegarder le token
-      setUser(user);    // 2. Mettre à jour l'utilisateur (ce qui déclenchera la redirection)
-      // IMPORTANT : On ne met PAS setIsLoading(false) ici. La redirection va démonter
-      // l'écran de connexion, donc c'est inutile et peut causer des bugs.
+      // L'ancienne fonction `apiLogin` retournait user+token, nous n'avons besoin que du token ici.
+      const response = await apiLogin(credentials);
+      saveToken(response.token);
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${response.token}`;
+      await fetchUser(); // On récupère l'utilisateur complet juste après avoir sauvegardé le token
     } catch (error) {
-      // Si une erreur survient (404, 401, etc.)...
-      setIsLoading(false); // ... on arrête le chargement pour que l'utilisateur puisse réessayer.
-      throw error;         // ... ET ON RELANCE L'ERREUR ! C'est crucial pour que le composant puisse la traiter.
+      setIsLoading(false);
+      throw error;
     }
   };
 
   const register = async (userData: any) => {
     setIsLoading(true);
     try {
-      const { user, token } = await apiRegister(userData);
+      const { token } = await apiRegister(userData);
       saveToken(token);
-      setUser(user);
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      await fetchUser();
     } catch (error) {
       setIsLoading(false);
-      throw error; // On applique le même modèle que pour le login.
+      throw error;
     }
   };
 
   const logout = () => {
     setUser(null);
     removeToken();
-    // Optionnel : rediriger vers la page de connexion si nécessaire.
-    // window.location.href = '/login'; 
+    delete apiClient.defaults.headers.common['Authorization'];
+  };
+
+  // Fonction pour permettre aux autres composants de rafraîchir les données utilisateur (ex: après un pari)
+  const refreshUser = async () => {
+      if(getToken()) {
+          await fetchUser();
+      }
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

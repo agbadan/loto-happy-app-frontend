@@ -1,75 +1,56 @@
+// src/utils/dashboardAPI.ts
+
 import apiClient from '../services/apiClient';
 
-// Définit les types de filtres de période que le composant peut utiliser.
-export type DashboardPeriod = 'day' | 'week' | 'month' | 'year';
-export type RiskTimePeriod = '1h' | 'today' | 'week' | 'all';
+// ====================================================================
+// ===== INTERFACES SPÉCIFIQUES AU DASHBOARD ==========================
+// ====================================================================
 
-// --- Interfaces décrivant la structure des données reçues de l'API ---
-
-// Pour les 4 cartes de statistiques (KPIs)
-export interface KpiStats {
-  totalRevenue: number;
-  revenueTrend: number;
-  totalWinnings: number;
-  winningsTrend: number;
-  totalProfit: number;
-  profitTrend: number;
-  newPlayers: number;
-  newPlayersTrend: number;
-}
-
-// Pour chaque point de donnée du graphique des revenus
-export interface RevenueDataPoint {
-  day: string;
-  amount: number;
-}
-
-// Pour chaque part du graphique circulaire des jeux
-export interface GameDataPoint {
+export interface Operator {
+  id: string;
   name: string;
-  value: number; // en pourcentage
+  icon: string;
+  country: string;
   color: string;
 }
 
-// Pour chaque ligne du tableau des combinaisons à risque
-export interface CombinationStat {
-  combination: number[];
-  operatorName: string;
-  count: number;
-  totalAmount: number;
-  potentialPayout: number;
-  riskLevel: 'critical' | 'high' | 'medium' | 'low';
+export interface Winner {
+  playerName: string;
+  winAmount: number;
+  gameName: string;
+  winDate: string; // Chaîne de caractères au format ISO 8601
 }
 
-// Pour les cartes de résumé de la section "Analyse de Risque"
-export interface RiskSummary {
-  totalCombinations: number;
-  totalAtRisk: number;
-  criticalRisk: number;
-  highRisk: number;
-  mediumRisk: number;
-  maxPotentialPayout: number;
-}
+// L'interface Ticket de drawsAPI.ts est plus complète, nous la réutilisons.
+// Si elle n'était pas exportée, on la redéfinirait ici.
+import { Ticket } from './drawsAPI';
 
-// L'interface principale qui rassemble toutes les autres.
-// C'est la structure complète de la réponse JSON de l'API.
-export interface DashboardData {
-  kpis: KpiStats;
-  revenueLast7Days: RevenueDataPoint[];
-  popularGames: GameDataPoint[];
-  riskAnalysis: {
-    summary: RiskSummary;
-    combinations: CombinationStat[];
-  };
-}
+
+// ====================================================================
+// ===== NOUVELLES FONCTIONS API POUR LE DASHBOARD ====================
+// ====================================================================
 
 /**
- * Récupère toutes les données consolidées pour le Dashboard Admin depuis l'API.
- * @param period - La période de temps ('day', 'week', 'month', 'year') pour filtrer les données.
+ * [PUBLIC] Récupère la liste de tous les opérateurs de jeu avec leurs métadonnées.
  */
-export const getDashboardSummary = async (period: DashboardPeriod): Promise<DashboardData> => {
-  const response = await apiClient.get<DashboardData>('/api/admin/dashboard-summary', {
-    params: { period }, // Envoie `?period=valeur` à l'API
-  });
+export const getOperators = async (): Promise<Operator[]> => {
+  const response = await apiClient.get<Operator[]>('/api/operators');
+  return response.data;
+};
+
+/**
+ * [PUBLIC] Récupère la liste des gagnants récents pour le fil d'actualité.
+ */
+export const getWinnerFeed = async (): Promise<Winner[]> => {
+  const response = await apiClient.get<Winner[]>('/api/public/winner-feed');
+  return response.data;
+};
+
+/**
+ * [AUTH] Récupère l'historique de tous les tickets pour l'utilisateur connecté.
+ * Identique à getBetHistory, mais on la garde ici pour la logique de notification.
+ */
+export const getMyTickets = async (): Promise<Ticket[]> => {
+  const response = await apiClient.get<Ticket[]>('/api/tickets/me');
   return response.data;
 };

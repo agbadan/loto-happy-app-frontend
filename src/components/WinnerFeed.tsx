@@ -1,176 +1,77 @@
 import { useState, useEffect } from "react";
-import { Trophy } from "lucide-react";
+import { Trophy, Loader2 } from "lucide-react";
 import { Card } from "./ui/card";
-import { motion, AnimatePresence } from "motion/react";
-import { useTheme } from "./ThemeProvider";
-import { getDraws } from "../utils/draws";
-import { getTickets } from "../utils/draws";
+import { Button } from "./ui/button";
+import { getWinnerFeed, Winner } from '../utils/dashboardAPI';
+import { formatDistanceToNow } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
-interface Winner {
-  id: string;
-  username: string;
-  gameName: string;
-  amount: number;
-  date: string;
+interface WinnerFeedProps {
+  onNavigateToResults: () => void;
 }
 
-export function WinnerFeed() {
-  const [visibleWinners, setVisibleWinners] = useState<Winner[]>([]);
-  const [allWinners, setAllWinners] = useState<Winner[]>([]);
-  const [winnerIndex, setWinnerIndex] = useState(4);
-  
-  // Récupérer le thème actuel
-  const { actualTheme } = useTheme();
-  const isDark = actualTheme === 'dark';
+export function WinnerFeed({ onNavigateToResults }: WinnerFeedProps) {
+  const [winners, setWinners] = useState<Winner[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Charger les vrais gagnants depuis localStorage
   useEffect(() => {
-    const tickets = getTickets();
-    const draws = getDraws();
-    
-    // Filtrer les tickets gagnants
-    const winningTickets = tickets.filter(t => t.status === 'won' && t.winAmount && t.winAmount > 0);
-    
-    // Créer la liste des gagnants avec infos complètes
-    const winners: Winner[] = winningTickets.map(ticket => {
-      const draw = draws.find(d => d.id === ticket.drawId);
-      return {
-        id: ticket.id,
-        username: ticket.username,
-        gameName: ticket.gameName,
-        amount: ticket.winAmount || 0,
-        date: ticket.purchaseDate,
-      };
-    });
-    
-    // Trier par date (plus récent en premier)
-    winners.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    
-    setAllWinners(winners);
-    setVisibleWinners(winners.slice(0, Math.min(4, winners.length)));
+    const fetchWinners = async () => {
+      try {
+        const winnerData = await getWinnerFeed();
+        setWinners(winnerData);
+      } catch (err) {
+        console.error("Failed to fetch winner feed:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchWinners();
   }, []);
 
-  // Animation de rotation automatique toutes les 5 secondes
-  useEffect(() => {
-    if (allWinners.length <= 4) return; // Pas besoin d'animation si moins de 4 gagnants
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8 gap-2 text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin" />
+        <span>Chargement des gagnants...</span>
+      </div>
+    );
+  }
 
-    const interval = setInterval(() => {
-      setVisibleWinners((current) => {
-        if (current.length === 0) return current;
-
-        // Retirer le dernier gagnant (le plus ancien)
-        const remaining = current.slice(0, -1);
-
-        // Récupérer le prochain gagnant du pool
-        const nextWinner = allWinners[winnerIndex % allWinners.length];
-        
-        // Incrémenter l'index pour le prochain
-        setWinnerIndex((prev) => prev + 1);
-
-        // Ajouter le nouveau gagnant au début
-        return [nextWinner, ...remaining];
-      });
-    }, 5000); // Rotation toutes les 5 secondes
-
-    return () => clearInterval(interval);
-  }, [winnerIndex, allWinners]);
-
-  // Calculer "il y a X min/heures"
-  const getTimeAgo = (dateString: string) => {
-    const now = new Date();
-    const date = new Date(dateString);
-    const diff = now.getTime() - date.getTime();
-    
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-    
-    if (days > 0) return `il y a ${days}j`;
-    if (hours > 0) return `il y a ${hours}h`;
-    if (minutes > 0) return `il y a ${minutes} min`;
-    return "à l'instant";
-  };
-
-  if (visibleWinners.length === 0) {
+  if (winners.length === 0) {
     return (
       <Card className="p-8 text-center border-border bg-card">
         <Trophy className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-        <p className="text-muted-foreground">Aucun gagnant pour le moment</p>
-        <p className="text-sm text-muted-foreground mt-2">
-          Les gagnants récents apparaîtront ici
-        </p>
+        <h3 className="font-bold text-lg">Aucun gagnant pour le moment</h3>
+        <p className="text-muted-foreground mt-1">Les gagnants récents apparaîtront ici</p>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-foreground">
-        Ils ont gagné récemment ! 🎉
-      </h2>
-      
-      <div className="space-y-3">
-        <AnimatePresence mode="popLayout">
-          {visibleWinners.map((winner) => (
-            <motion.div
-              key={winner.id}
-              layout
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ 
-                opacity: 1, 
-                y: 0,
-                transition: {
-                  duration: 0.5,
-                  ease: "easeOut"
-                }
-              }}
-              exit={{ 
-                opacity: 0, 
-                y: 20,
-                transition: {
-                  duration: 0.4,
-                  ease: "easeIn"
-                }
-              }}
-            >
-              <Card
-                className="flex items-center gap-4 p-4 transition-all rounded-xl"
-                style={{
-                  backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
-                  borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#e5e5e5',
-                }}
-              >
-                <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#FFD700] to-[#FFA500]">
-                  <Trophy className="h-7 w-7 text-[#121212]" />
-                </div>
-
-                <div className="flex-1 space-y-1">
-                  <p 
-                    className="text-sm"
-                    style={{ color: isDark ? '#EAEAEA' : '#1C1C1E' }}
-                  >
-                    <span className="font-bold">{winner.username}</span>{" "}
-                    <span style={{ color: isDark ? '#8E8E93' : '#6e6e73' }}>
-                      au {winner.gameName}
-                    </span>
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg font-bold text-[#FFD700]">
-                      {winner.amount.toLocaleString('fr-FR')} F CFA
-                    </span>
-                    <span 
-                      className="text-xs"
-                      style={{ color: isDark ? '#8E8E93' : '#6e6e73' }}
-                    >
-                      • {getTimeAgo(winner.date)}
-                    </span>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+    <section className="mb-12">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-foreground">Ils ont gagné récemment ! 🎉</h2>
+        <Button variant="link" onClick={onNavigateToResults}>Voir tout</Button>
       </div>
-    </div>
+      <div className="space-y-3">
+        {winners.map((winner, index) => (
+          <Card key={index} className="flex items-center gap-4 p-4 transition-all rounded-xl">
+            <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#FFD700] to-[#FFA500]">
+              <Trophy className="h-7 w-7 text-[#121212]" />
+            </div>
+            <div className="flex-1 space-y-1">
+              <p className="text-sm">
+                <span className="font-bold">{winner.playerName}</span>{" "}
+                <span className="text-muted-foreground">au {winner.gameName}</span>
+              </p>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold text-[#FFD700]">{winner.winAmount.toLocaleString('fr-FR')} F</span>
+                <span className="text-xs text-muted-foreground">• {formatDistanceToNow(new Date(winner.winDate), { locale: fr, addSuffix: true })}</span>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </section>
   );
 }
