@@ -6,13 +6,10 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../ui/alert-dialog";
-import { Input } from "../ui/input";
 import { toast } from "sonner";
-// CORRECTION : Ajout de l'icône TrendingUp qui était manquante
 import { CheckCircle, XCircle, Wallet, Trophy, DollarSign, Users, Loader2, TrendingUp } from "lucide-react";
-// CORRECTION : Renommage des fonctions importées pour correspondre à ce que j'ai fourni précédemment
 import { getGlobalFinancialStats, getWithdrawals, updateWithdrawalStatus } from "../../utils/withdrawalsAPI";
-import { Withdrawal, FinancialStats } from "../../types"; // Assurez-vous que ces types sont bien définis dans src/types.ts
+import { Withdrawal, FinancialStats } from "../../types";
 
 const StatCard = ({ title, value, icon: Icon, iconBg, iconColor, isCurrency = true, profitColor = false }: { title: string, value: number, icon: React.ElementType, iconBg: string, iconColor: string, isCurrency?: boolean, profitColor?: boolean }) => (
     <Card className="p-4 md:p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground mb-1">{title}</p><p className={`text-2xl font-bold ${profitColor ? (value >= 0 ? 'text-green-500' : 'text-red-500') : ''}`}>{isCurrency ? value.toLocaleString('fr-FR') + ' F' : value.toLocaleString('fr-FR')}</p></div><div className={`rounded-full p-3 ${iconBg}`}><Icon className={`h-6 w-6 ${iconColor}`} /></div></div></Card>
@@ -27,15 +24,18 @@ const WithdrawalCard = ({ request, onApprove, onReject }: { request: Withdrawal,
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-bold text-lg">{request.player?.username || 'Utilisateur inconnu'}</h3>
+                        {/* CORRECTION 1 : Accès au nom d'utilisateur via playerInfo */}
+                        <h3 className="font-bold text-lg">{request.playerInfo?.username || 'Utilisateur inconnu'}</h3>
                         <Badge className={`bg-${statusConfig[currentStatus]?.color}/20 text-${statusConfig[currentStatus]?.color}`}>{statusConfig[currentStatus]?.text || 'Inconnu'}</Badge>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-2 text-sm mt-2">
                         <span>Montant: <span className="font-semibold">{request.amount.toLocaleString('fr-FR')} F</span></span>
                         <span>Opérateur: <span className="font-semibold">{request.provider || 'N/A'}</span></span>
-                        <span>Numéro: <span className="font-semibold">{request.player?.phone_number || 'N/A'}</span></span>
+                        {/* CORRECTION 2 : Accès au numéro de téléphone de retrait */}
+                        <span>Numéro: <span className="font-semibold">{request.withdrawalPhoneNumber || 'N/A'}</span></span>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-2">{new Date(request.created_at).toLocaleString('fr-FR')}</p>
+                    {/* CORRECTION 3 : Utilisation de requestDate pour la date */}
+                    <p className="text-xs text-muted-foreground mt-2">{new Date(request.requestDate).toLocaleString('fr-FR')}</p>
                 </div>
                 {request.status === 'pending' && (
                     <div className="flex gap-2">
@@ -58,23 +58,18 @@ export function AdminFinance() {
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<Withdrawal | null>(null);
-  // Le rejet ne nécessite pas de raison dans la nouvelle API simple
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchAllData = async () => {
     setIsLoading({ stats: true, withdrawals: true });
     setError(null);
     try {
-      // Les appels sont faits en parallèle
       const [statsData, withdrawalsData] = await Promise.all([
         getGlobalFinancialStats(),
         getWithdrawals(),
       ]);
-      
-      // CORRECTION : On assigne directement les données reçues
       setStats(statsData);
       setAllWithdrawals(withdrawalsData);
-
     } catch (err) { 
       setError("Impossible de charger les données. Une erreur est survenue."); 
       console.error("Erreur détaillée:", err);
@@ -96,7 +91,7 @@ export function AdminFinance() {
     try {
       await updateWithdrawalStatus(selectedRequest.id, action);
       toast.success(`Demande ${action === 'approved' ? 'approuvée' : 'rejetée'}.`);
-      await fetchAllData(); // Recharger toutes les données pour mettre à jour la UI
+      await fetchAllData();
     } catch (err: any) { 
       toast.error(err?.response?.data?.detail || "Erreur lors de la mise à jour."); 
     } 
@@ -146,8 +141,31 @@ export function AdminFinance() {
         </>
         )}
       </Tabs>
-      <AlertDialog open={showApproveDialog} onOpenChange={setShowApproveDialog}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Approuver le retrait ?</AlertDialogTitle><AlertDialogDescription>Confirmez l'approbation de <strong>{selectedRequest?.amount.toLocaleString('fr-FR')} F</strong> pour <strong>{selectedRequest?.player?.username}</strong>.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={isSubmitting}>Annuler</AlertDialogCancel><AlertDialogAction onClick={() => confirmProcessRequest('approved')} disabled={isSubmitting} className="bg-green-500 hover:bg-green-600">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Approuver</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
-      <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Rejeter le retrait ?</AlertDialogTitle><AlertDialogDescription>Confirmez le rejet de la demande de <strong>{selectedRequest?.amount.toLocaleString('fr-FR')} F</strong> pour <strong>{selectedRequest?.player?.username}</strong>. Cette action est irréversible.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={isSubmitting}>Annuler</AlertDialogCancel><AlertDialogAction onClick={() => confirmProcessRequest('rejected')} disabled={isSubmitting} className="bg-red-500 hover:bg-red-600">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Confirmer le Rejet</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+      {/* CORRECTION 4 : Mise à jour de l'accès dans les boîtes de dialogue */}
+      <AlertDialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Approuver le retrait ?</AlertDialogTitle>
+            <AlertDialogDescription>Confirmez l'approbation de <strong>{selectedRequest?.amount.toLocaleString('fr-FR')} F</strong> pour <strong>{selectedRequest?.playerInfo?.username}</strong>.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => confirmProcessRequest('approved')} disabled={isSubmitting} className="bg-green-500 hover:bg-green-600">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Approuver</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Rejeter le retrait ?</AlertDialogTitle>
+            <AlertDialogDescription>Confirmez le rejet de la demande de <strong>{selectedRequest?.amount.toLocaleString('fr-FR')} F</strong> pour <strong>{selectedRequest?.playerInfo?.username}</strong>. Cette action est irréversible.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => confirmProcessRequest('rejected')} disabled={isSubmitting} className="bg-red-500 hover:bg-red-600">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Confirmer le Rejet</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

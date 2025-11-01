@@ -22,19 +22,22 @@ export interface AdminUser extends User {
 }
 
 // --- TYPE POUR LES RETRAITS (utilisé dans AdminFinance) ---
+// MIS À JOUR pour correspondre à la structure de l'API
 export interface Withdrawal {
   id: string;
   amount: number;
   provider: string;
+  withdrawalPhoneNumber: string; // Numéro utilisé pour le retrait
   status: 'pending' | 'approved' | 'rejected';
-  created_at: string; // Note: le backend utilise snake_case ici
-  player: {
+  requestDate: string; // Le champ correct pour la date
+  processedDate: string | null;
+  processedBy: string | null;
+  playerInfo: { // Le sous-objet correct
     id: string;
     username: string;
-    phone_number: string; // Note: le backend utilise snake_case ici
-  } | null;
+    phoneNumber: string; // Numéro de téléphone principal du joueur
+  };
 }
-
 // --- TYPE POUR LES STATS FINANCIÈRES (utilisé dans AdminFinance) ---
 export interface FinancialStats {
     totalCredits: number;
