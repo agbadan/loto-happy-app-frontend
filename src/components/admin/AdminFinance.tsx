@@ -65,7 +65,14 @@ export function AdminFinance() {
         getWithdrawals(),
       ]);
       setStats(statsData);
-      setAllWithdrawals(withdrawalsData);
+      
+      // Correction défensive : s'assurer que chaque objet a un `id`.
+      const sanitizedWithdrawals = withdrawalsData.map(w => ({
+        ...w,
+        id: w.id || w._id,
+      }));
+
+      setAllWithdrawals(sanitizedWithdrawals as Withdrawal[]);
     } catch (err) { 
       setError("Impossible de charger les données. Une erreur est survenue."); 
       console.error("Erreur détaillée:", err);
