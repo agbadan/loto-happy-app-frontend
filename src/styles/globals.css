@@ -55,6 +55,8 @@
   --sidebar-accent-foreground: #eaeaea;
   --sidebar-border: rgba(255, 255, 255, 0.08);
   --sidebar-ring: #ffd700;
+  --brand: 48 96% 55%; /* Jaune vif */
+  --brand-foreground: 0 0% 10%; /* Texte noir */
 }
 
 /* Light Theme Variables */
@@ -101,6 +103,8 @@
   --sidebar-accent-foreground: #1a202c;
   --sidebar-border: rgba(0, 0, 0, 0.1);
   --sidebar-ring: #ffd700;
+  --brand: 48 96% 55%;
+  --brand-foreground: 0 0% 10%;
 }
 
 /* Amélioration visuelle pour les cartes en thème clair */
@@ -143,6 +147,8 @@
   --sidebar-accent-foreground: #eaeaea;
   --sidebar-border: rgba(255, 255, 255, 0.08);
   --sidebar-ring: #ffd700;
+  --brand: 48 96% 55%;
+  --brand-foreground: 0 0% 10%;
 }
 
 @theme inline {
