@@ -12,7 +12,7 @@ import { Badge } from "./ui/badge";
 import { Separator } from "./ui/separator";
 import { ArrowLeft, Sparkles, Calendar, Clock, Calculator, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { motion } from "motion/react";
+import { motion } from "framer-motion"; // Correction de l'import pour motion
 import { useAuth } from "../contexts/AuthContext";
 import { getDrawById, createTicket, Draw } from "../utils/drawsAPI";
 import { getOperators, Operator } from "../utils/dashboardAPI";
@@ -159,7 +159,7 @@ export function GameScreenAdvanced({
                 {numbers.map(num => (
                   <motion.button key={num} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={() => toggleNumber(num)} className={`aspect-square flex items-center justify-center rounded-lg transition-all duration-200 font-semibold text-sm ${
                     selectedNumbers.includes(num) 
-                      ? 'bg-[#4F00BC] text-white shadow-lg' // CORRECTION: Couleur violette pour la sélection
+                      ? 'bg-[#4F00BC] text-white shadow-lg'
                       : 'bg-muted text-foreground hover:bg-muted-foreground/20'
                   }`}>
                     {num}
@@ -176,7 +176,9 @@ export function GameScreenAdvanced({
               <div className="mb-4">
                 <Label>Mise par {betType === 'PERMUTATION' ? 'combinaison' : 'pari'}</Label>
                 <div className="grid grid-cols-3 gap-2 mt-2">
-                  {[100, 500, 1000].map(amount => (<Button key={amount} variant={betAmount === amount ? "brand" : "outline"} size="sm" onClick={() => { setBetAmount(amount); setCustomBetInput(String(amount)); }} className={betAmount === amount ? "bg-yellow-500 text-black" : ""}>{amount >= 1000 ? `${amount / 1000}K` : amount}</Button>))}
+                  {/* --- CORRECTION 1 --- */}
+                  {/* On retire la classe manuelle, la variante s'en occupe */}
+                  {[100, 500, 1000].map(amount => (<Button key={amount} variant={betAmount === amount ? "brand" : "outline"} size="sm" onClick={() => { setBetAmount(amount); setCustomBetInput(String(amount)); }}>{amount >= 1000 ? `${amount / 1000}K` : amount}</Button>))}
                 </div>
                 <Input type="number" placeholder="Mise personnalisée" value={customBetInput} onChange={(e) => { setCustomBetInput(e.target.value); const num = parseInt(e.target.value); if (!isNaN(num) && num >= 0) setBetAmount(num); }} className="mt-2"/>
               </div>
@@ -184,7 +186,9 @@ export function GameScreenAdvanced({
               {betType === 'PERMUTATION' && selectedNumbers.length >= 2 && (<div className="mb-4 p-3 bg-muted rounded-lg"><p className="text-sm text-muted-foreground">Combinaisons générées</p><p className="text-lg font-bold text-foreground">{calculatePermutationCombinations(selectedNumbers.length)}</p></div>)}
               <div className="mb-4"><p className="text-sm text-muted-foreground">Coût Total</p><p className="text-2xl font-bold text-foreground">{totalCost.toLocaleString('fr-FR')} F</p></div>
               <div className="mb-6 p-4 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-lg"><p className="text-sm text-muted-foreground mb-1">Gain Potentiel</p><p className="text-2xl font-bold text-yellow-500">{potentialWin.toLocaleString('fr-FR')} F</p></div>
-              <Button  variant="brand"  className="w-full bg-yellow-500 text-black hover:bg-yellow-600" size="lg" onClick={handlePlaceBet} disabled={isSubmitting || selectedNumbers.length < betTypeConfig.minNumbers}>{isSubmitting ? <Loader2 className="animate-spin" /> : 'Valider le Pari'}</Button>
+              {/* --- CORRECTION 2 --- */}
+              {/* On retire les classes de couleur manuelles. "w-full" reste car c'est du layout. */}
+              <Button variant="brand" className="w-full" size="lg" onClick={handlePlaceBet} disabled={isSubmitting || selectedNumbers.length < betTypeConfig.minNumbers}>{isSubmitting ? <Loader2 className="animate-spin" /> : 'Valider le Pari'}</Button>
             </Card>
           </div>
         </div>
