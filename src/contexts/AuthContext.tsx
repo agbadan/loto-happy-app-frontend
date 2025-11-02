@@ -1,14 +1,12 @@
 // src/contexts/AuthContext.tsx
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import apiClient from '../services/apiClient_';
-import { 
-  loginUser as apiLogin, 
-  registerUser as apiRegister 
-} from '../utils/authAPI';
+// --- L'IMPORT CORRECT ---
+import apiClient from '../services/apiClient';
+import { loginUser as apiLogin, registerUser as apiRegister } from '../utils/authAPI';
+// On importe depuis un fichier dédié pour plus de propreté
 import { getToken, saveToken, removeToken } from '../utils/tokenStorage';
 
-// Définition du type User complet, aligné avec la réponse de /api/auth/me
 export interface User {
   id: string;
   username: string;
@@ -28,7 +26,7 @@ interface AuthContextType {
   login: (credentials: { emailOrPhone: string; password: string }) => Promise<void>;
   register: (userData: any) => Promise<void>;
   logout: () => void;
-  refreshUser: () => Promise<void>; // Fonction pour rafraîchir les soldes
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,14 +35,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fonction centrale pour récupérer les données de l'utilisateur
   const fetchUser = async () => {
     try {
       const response = await apiClient.get<User>('/api/auth/me');
       setUser(response.data);
     } catch (error) {
       console.error("Échec de la récupération de l'utilisateur.", error);
-      // Si le token est invalide, on déconnecte
       setUser(null);
       removeToken();
     }
@@ -62,28 +58,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async (credentials: { emailOrPhone: string; password: string }) => {
-    setIsLoading(true);
+    // Ne pas mettre isLoading ici pour une meilleure expérience utilisateur
     try {
-      // L'ancienne fonction `apiLogin` retournait user+token, nous n'avons besoin que du token ici.
-      const response = await apiLogin(credentials);
-      saveToken(response.token);
-      apiClient.defaults.headers.common['Authorization'] = `Bearer ${response.token}`;
-      await fetchUser(); // On récupère l'utilisateur complet juste après avoir sauvegardé le token
+      const { token } = await apiLogin(credentials);
+      saveToken(token);
+      // L'intercepteur dans apiClient s'occupe de mettre le header, pas besoin de le faire ici.
+      await fetchUser();
     } catch (error) {
-      setIsLoading(false);
+      // Si une erreur se produit, on la propage pour que le formulaire de login puisse l'afficher
       throw error;
     }
   };
 
   const register = async (userData: any) => {
-    setIsLoading(true);
     try {
       const { token } = await apiRegister(userData);
       saveToken(token);
-      apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       await fetchUser();
     } catch (error) {
-      setIsLoading(false);
       throw error;
     }
   };
@@ -91,10 +83,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     setUser(null);
     removeToken();
-    delete apiClient.defaults.headers.common['Authorization'];
+    // L'intercepteur verra qu'il n'y a plus de token, pas besoin de supprimer le header manuellement.
   };
-
-  // Fonction pour permettre aux autres composants de rafraîchir les données utilisateur (ex: après un pari)
+  
   const refreshUser = async () => {
       if(getToken()) {
           await fetchUser();
