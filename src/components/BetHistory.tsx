@@ -1,8 +1,8 @@
 // src/components/BetHistory.tsx
 
 import { useState, useEffect } from 'react';
-import { getPlayerTickets, Ticket } from '../utils/ticketsAPI'; // ✨ NOUVEL IMPORT
-import { BetCard } from './BetCard'; // ✨ NOUVEL IMPORT
+import { getPlayerTickets, Ticket } from '../utils/ticketsAPI';
+import { BetCard } from './BetCard';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Loader2 } from 'lucide-react';
@@ -11,11 +11,13 @@ import { toast } from 'sonner';
 type FilterType = 'ALL' | 'PENDING' | 'WON' | 'LOST';
 
 const filters: { label: string; value: FilterType }[] = [
-  { label: 'Tous', value: 'ALL' },
-  { label: 'À venir', value: 'PENDING' },
-  { label: 'Gagnés', value: 'WON' },
-  { label: 'Perdus', value: 'LOST' },
-];
+    { label: 'Tous', value: 'ALL' },
+    { label: 'À venir', value: 'PENDING' },
+    { label: 'En attente', value: 'PENDING' }, // Consolidé avec 'À venir'
+    { label: 'Gagnés', value: 'WON' },
+    { label: 'Perdus', value: 'LOST' },
+].filter((v, i, a) => a.findIndex(t => (t.value === v.value)) === i); // Supprime les doublons
+
 
 export function BetHistory() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -38,13 +40,12 @@ export function BetHistory() {
       }
     };
     fetchTickets();
-  }, []); // Se déclenche une seule fois au montage
+  }, []);
 
   const filteredTickets = activeFilter === 'ALL'
     ? tickets
     : tickets.filter(ticket => ticket.status === activeFilter);
 
-  // Calcule les statistiques basées sur TOUS les tickets, pas seulement ceux filtrés
   const totalBets = tickets.length;
   const totalStaked = tickets.reduce((sum, ticket) => sum + ticket.betAmount, 0);
   const totalWon = tickets.reduce((sum, ticket) => sum + (ticket.winnings || 0), 0);
@@ -66,66 +67,39 @@ export function BetHistory() {
     );
   }
 
-  if (tickets.length === 0) {
-    return (
-      <Card className="p-8 text-center">
-        <p className="text-muted-foreground">Vous n'avez encore placé aucun pari.</p>
-      </Card>
-    );
-  }
-  
   return (
     <div className="space-y-6">
-      {/* Stats Rapides - Inspiré de votre ancien code, adapté à la nouvelle structure */}
+      <div className="flex space-x-2">
+        {filters.map(filter => (
+          <Button
+            key={filter.value}
+            variant={activeFilter === filter.value ? 'brand' : 'outline'}
+            size="sm"
+            onClick={() => setActiveFilter(filter.value)}
+            className="whitespace-nowrap"
+          >
+            {filter.label}
+          </Button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="p-3">
-          <p className="text-xs text-muted-foreground mb-1">Total Paris</p>
-          <p className="text-xl font-bold text-foreground">{totalBets}</p>
-        </Card>
-        <Card className="p-3">
-          <p className="text-xs text-muted-foreground mb-1">Total Misé</p>
-          <p className="text-xl font-bold text-foreground">{totalStaked.toLocaleString('fr-FR')} F</p>
-        </Card>
-        <Card className="p-3">
-          <p className="text-xs text-muted-foreground mb-1">Total Gagné</p>
-          <p className="text-xl font-bold text-green-500">{totalWon.toLocaleString('fr-FR')} F</p>
-        </Card>
-        <Card className="p-3">
-          <p className="text-xs text-muted-foreground mb-1">Paris Gagnants</p>
-          <p className="text-xl font-bold text-yellow-500">{winningBetsCount}</p>
-        </Card>
+        <Card className="p-3"><p className="text-xs text-muted-foreground mb-1">Total Paris</p><p className="text-xl font-bold">{totalBets}</p></Card>
+        <Card className="p-3"><p className="text-xs text-muted-foreground mb-1">Total Misé</p><p className="text-xl font-bold">{totalStaked.toLocaleString('fr-FR')} F</p></Card>
+        <Card className="p-3"><p className="text-xs text-muted-foreground mb-1">Total Gagné</p><p className="text-xl font-bold text-green-500">{totalWon.toLocaleString('fr-FR')} F</p></Card>
+        <Card className="p-3"><p className="text-xs text-muted-foreground mb-1">Paris Gagnants</p><p className="text-xl font-bold text-yellow-500">{winningBetsCount}</p></Card>
       </div>
 
-      {/* Filtres */}
-      <div className="overflow-x-auto pb-2 -mx-3 px-3">
-        <div className="flex space-x-2">
-          {filters.map(filter => (
-            <Button
-              key={filter.value}
-              variant={activeFilter === filter.value ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setActiveFilter(filter.value)}
-              className="whitespace-nowrap"
-            >
-              {filter.label}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      {/* Liste des Paris */}
-      {filteredTickets.length > 0 ? (
+      {tickets.length === 0 ? (
+         <Card className="p-8 text-center"><p className="text-muted-foreground">Vous n'avez encore placé aucun pari.</p></Card>
+      ) : filteredTickets.length > 0 ? (
         <div className="space-y-4">
           {filteredTickets.map(ticket => (
             <BetCard key={ticket.id} ticket={ticket} />
           ))}
         </div>
       ) : (
-        <Card className="p-8 text-center">
-          <p className="text-muted-foreground">
-            Aucun pari dans cette catégorie.
-          </p>
-        </Card>
+        <Card className="p-8 text-center"><p className="text-muted-foreground">Aucun pari dans cette catégorie.</p></Card>
       )}
     </div>
   );
