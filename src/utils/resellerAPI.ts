@@ -1,6 +1,6 @@
 // src/utils/resellerAPI.ts
 
-import apiClient from '../utils/apiClient';
+import apiClient from '../services/apiClient';
 
 // --- INTERFACES BASÉES SUR L'API FINALE ---
 

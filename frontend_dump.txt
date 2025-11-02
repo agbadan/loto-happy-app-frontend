@@ -5680,7 +5680,7 @@ import { Badge } from "./ui/badge";
 import { Separator } from "./ui/separator";
 import { Calendar, Clock, TrendingUp, TrendingDown, Timer, Trophy, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import apiClient from "../utils/apiClient"; // Assurez-vous que ce chemin est correct
+import apiClient from "../services/apiClient"; // Assurez-vous que ce chemin est correct
 
 // Interface décrivant la structure d'un ticket retourné par l'API GET /api/tickets/me
 export interface BetHistoryItem {
@@ -18558,7 +18558,7 @@ html {
 
 // src/utils/adminAPI.ts
 
-import apiClient from '../utils/apiClient';
+import apiClient from '../services/apiClient';
 import { AdminUser } from '../types'; // Assurez-vous que le chemin vers votre fichier de types est correct
 
 // =====================================================================
@@ -20423,7 +20423,7 @@ export function initializeAdmins(): void {
 
 // src/utils/authAPI.ts
 
-import apiClient from '../utils/apiClient';
+import apiClient from '../services/apiClient';
 
 // ===== INTERFACES =====
 // Nous gardons ton interface User qui est bien détaillée.
@@ -20547,7 +20547,7 @@ export const CONFIG = {
 --- FICHIER : ./src/utils/dashboardAPI.ts ---
 ================================================================================
 
-import apiClient from '../utils/apiClient';
+import apiClient from '../services/apiClient';
 
 // Définit les types de filtres de période que le composant peut utiliser.
 export type DashboardPeriod = 'day' | 'week' | 'month' | 'year';
@@ -21726,7 +21726,7 @@ export function getOperatorStats(): { name: string; value: number; color: string
 
 // src/utils/drawsAPI.ts
 
-import apiClient from '../utils/apiClient';
+import apiClient from '../services/apiClient';
 
 // ====================================================================
 // ===== INTERFACES (Mises à jour avec le nouveau statut 'pending') ====
@@ -22417,7 +22417,7 @@ if (typeof window !== 'undefined') {
 
 // src/utils/playerAPI.ts
 
-import apiClient from '../utils/apiClient';
+import apiClient from '../services/apiClient';
 
 // --- INTERFACES POUR LES JOUEURS ---
 
@@ -22506,7 +22506,7 @@ export const getMyTransactionHistory = async (page: number = 1, size: number = 2
 
 // src/utils/resellerAPI.ts
 
-import apiClient from '../utils/apiClient';
+import apiClient from '../services/apiClient';
 
 // --- INTERFACES BASÉES SUR L'API FINALE ---
 
@@ -22776,7 +22776,7 @@ export function getPendingWithdrawalRequests(): WithdrawalRequest[] {
 
 // src/utils/withdrawalsAPI.ts
 
-import apiClient from '../utils/apiClient';
+import apiClient from '../services/apiClient';
 import { Withdrawal, FinancialStats } from '../types';
 
 /**
