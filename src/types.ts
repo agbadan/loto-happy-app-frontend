@@ -2,7 +2,7 @@
 
 // --- TYPE UTILISATEUR GÉNÉRIQUE ---
 export interface User {
-  _id: string;
+  id: string;
   username: string;
   phoneNumber: string;
   email: string;
@@ -22,7 +22,7 @@ export interface AdminUser extends User {
 
 // --- TYPE POUR LES RETRAITS (utilisé dans AdminFinance) ---
 export interface Withdrawal {
-  _id: string;
+  id: string;
   amount: number;
   provider: string;
   withdrawalPhoneNumber: string; // Numéro utilisé pour le retrait
@@ -31,7 +31,7 @@ export interface Withdrawal {
   processedDate: string | null;
   processedBy: string | null;
   playerInfo: {
-    _id: string;
+    id: string;
     username: string;
     phoneNumber: string; // Numéro de téléphone principal du joueur
   };
