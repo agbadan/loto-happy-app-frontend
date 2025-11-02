@@ -18,8 +18,8 @@ export interface User {
 }
 
 interface AuthResponse {
-  access_token: string;
-  token_type: string;
+  token: string;
+  user: User; // Le backend renvoie aussi l'objet utilisateur
 }
 
 // ===== FONCTIONS D'API =====
@@ -43,8 +43,8 @@ export const loginUser = async (credentials: {
     // 2. Faire l'appel POST. Axios envoie du JSON par défaut, pas besoin de config spéciale.
     const response = await apiClient.post<AuthResponse>('/api/auth/login', loginData);
     
-    // 3. On retourne l'access_token reçu
-    return { token: response.data.access_token };
+    // 3. On retourne le token reçu
+    return { token: response.data.token };
 
   } catch (error) {
     console.error("Erreur dans authAPI.ts > loginUser:", error);
@@ -68,7 +68,7 @@ export const getCurrentUser = async (): Promise<User> => {
  */
 export const registerUser = async (userData: any): Promise<{ token: string }> => {
   const response = await apiClient.post<AuthResponse>('/api/auth/register', userData);
-  return { token: response.data.access_token };
+  return { token: response.data.token };
 };
 
 /**

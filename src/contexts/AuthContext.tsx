@@ -62,26 +62,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { token } = await apiLogin(credentials);
       saveToken(token);
 
-      // --- LA CORRECTION CRUCIALE EST ICI ---
-      // On met à jour manuellement le header par défaut d'axios pour les requêtes futures de cette session.
-      // L'intercepteur utilisera ce header mis à jour.
-      apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      // L'intercepteur dans apiClient s'occupe maintenant de mettre à jour le header.
+      // Il n'y a plus besoin de le faire manuellement ici.
 
-      // Maintenant, on peut appeler fetchUser en étant certain que le bon token sera utilisé.
+      // Maintenant, on peut appeler fetchUser. L'intercepteur ajoutera le nouveau token.
       await fetchUser();
     } catch (error) {
-      // Nettoyage en cas d'échec du login
-      delete apiClient.defaults.headers.common['Authorization'];
+      // Pas besoin de supprimer le header manuellement, l'intercepteur gère tout.
       throw error;
     }
-  };
 
   const register = async (userData: any) => {
     try {
       const { token } = await apiRegister(userData);
       saveToken(token);
-      // On fait la même chose pour l'inscription
-      apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      // L'intercepteur s'occupe du header, comme pour le login.
       await fetchUser();
     } catch (error) {
       throw error;
