@@ -17,43 +17,40 @@ export interface User {
   lastLogin?: string | null;
 }
 
+// L'interface de réponse correspond à ce que le backend renvoie VRAIMENT
 interface AuthResponse {
-  access_token: string;
-  token_type: 'bearer';
+  user: User;
+  token: string;
 }
 
 // ===== FONCTIONS D'API =====
 
 /**
- * Connecte un utilisateur. Le backend attend du `x-www-form-urlencoded`.
- * En cas de succès, retourne uniquement le `access_token`.
+ * Connecte un utilisateur en envoyant les données en JSON.
+ * En cas de succès, retourne l'objet { user, token }.
  */
 export const loginUser = async (credentials: {
   emailOrPhone: string;
   password: string;
-}): Promise<string> => {
+}): Promise<AuthResponse> => {
   
-  // 1. Préparer le corps de la requête en format `x-www-form-urlencoded`
-  const formData = new URLSearchParams();
-  formData.append('username', credentials.emailOrPhone);
-  formData.append('password', credentials.password);
+  // 1. Préparer le corps de la requête en format JSON.
+  // Le backend attend un champ `username`, donc on mappe `emailOrPhone` dessus.
+  const payload = {
+    username: credentials.emailOrPhone,
+    password: credentials.password,
+  };
   
   try {
-    // 2. Faire l'appel POST. Il est CRUCIAL de passer l'objet formData directement
-    // et de spécifier le header 'Content-Type' pour qu'Axios envoie les données
-    // en format x-www-form-urlencoded et non en JSON.
-    const response = await apiClient.post<AuthResponse>('/api/auth/login', formData, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    });
+    // 2. Faire l'appel POST. Axios utilise 'application/json' par défaut.
+    // La réponse attendue est de type AuthResponse.
+    const response = await apiClient.post<AuthResponse>('/api/auth/login', payload);
     
-    // 3. On retourne uniquement le `access_token`
-    return response.data.access_token;
+    // 3. On retourne l'objet complet { user, token }
+    return response.data;
   } catch (error) {
     console.error("Erreur dans authAPI.ts > loginUser:", error);
-    // On propage l'erreur pour que le composant de login puisse la gérer
-    // (par exemple, pour afficher "Mot de passe incorrect" ou "Utilisateur non trouvé")
+    // On propage l'erreur pour que le AuthContext puisse la gérer
     throw error;
   }
 };
