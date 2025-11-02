@@ -17,43 +17,38 @@ export interface User {
   lastLogin?: string | null;
 }
 
-// L'interface de réponse attendue de l'API pour les routes de connexion/inscription
-// --- CORRIGÉ --- : Le backend renvoie 'access_token', pas 'token'
 interface AuthResponse {
   access_token: string;
   token_type: string;
-  // L'objet user n'est pas renvoyé par /login, mais par /me
 }
 
 // ===== FONCTIONS D'API =====
 
 /**
- * Connecte un utilisateur en envoyant les données en format x-www-form-urlencoded.
+ * Connecte un utilisateur en envoyant les données en format JSON.
+ * C'est la méthode finale et la plus robuste.
  */
 export const loginUser = async (credentials: {
   emailOrPhone: string;
   password: string;
-}): Promise<{ token: string }> => { // La fonction ne retourne que le token
+}): Promise<{ token: string }> => {
   
-  // 1. Préparer les données pour le format form-data que le backend attend
-  const formData = new URLSearchParams();
-  formData.append('username', credentials.emailOrPhone); 
-  formData.append('password', credentials.password);
+  // 1. Préparer le corps de la requête en JSON
+  const loginData = {
+    username: credentials.emailOrPhone,
+    password: credentials.password,
+  };
 
   try {
-    // 2. Faire l'appel POST en spécifiant le bon header Content-Type
-    const response = await apiClient.post<AuthResponse>('/api/auth/login', formData, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    });
+    // 2. Faire l'appel POST. Axios envoie du JSON par défaut, pas besoin de config spéciale.
+    const response = await apiClient.post<AuthResponse>('/api/auth/login', loginData);
     
     // 3. On retourne l'access_token reçu
     return { token: response.data.access_token };
 
   } catch (error) {
     console.error("Erreur dans authAPI.ts > loginUser:", error);
-    // On propage l'erreur pour que AuthContext puisse la gérer et l'afficher
+    // On propage l'erreur pour que le formulaire de login puisse afficher le message d'erreur
     throw error;
   }
 };
@@ -80,15 +75,12 @@ export const registerUser = async (userData: any): Promise<{ token: string }> =>
  * Change le mot de passe de l'utilisateur connecté.
  */
 export const changePassword = async (oldPassword: string, newPassword: string): Promise<void> => {
-  // Le backend s'attend probablement à un format JSON spécifique
   const passwordData = {
     current_password: oldPassword,
     new_password: newPassword,
   };
   await apiClient.put('/api/auth/change-password', passwordData);
 };
-
-// ... (les autres fonctions comme loginWithGoogle et logoutUser restent inchangées)
 
 /**
  * Gère la connexion via Google (Placeholder).
