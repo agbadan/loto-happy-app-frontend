@@ -1,11 +1,10 @@
 // src/contexts/AuthContext.tsx
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-// --- L'IMPORT CORRECT ---
-import apiClient from '../services/apiClient';
+// L'import du VRAI client API
+import apiClient from '../services/apiClient'; 
 import { loginUser as apiLogin, registerUser as apiRegister } from '../utils/authAPI';
-// On importe depuis un fichier dédié pour plus de propreté
-import { getToken, saveToken, removeToken } from '../utils/tokenStorage';
+import { getToken, saveToken, removeToken } from '../utils/tokenStorage'; // Supposons que ce fichier existe
 
 export interface User {
   id: string;
@@ -40,7 +39,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const response = await apiClient.get<User>('/api/auth/me');
       setUser(response.data);
     } catch (error) {
-      console.error("Échec de la récupération de l'utilisateur.", error);
+      console.error("Échec de la récupération de l'utilisateur (fetchUser).", error);
+      // En cas d'échec (token invalide), on nettoie tout
       setUser(null);
       removeToken();
     }
@@ -58,14 +58,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async (credentials: { emailOrPhone: string; password: string }) => {
-    // Ne pas mettre isLoading ici pour une meilleure expérience utilisateur
     try {
       const { token } = await apiLogin(credentials);
       saveToken(token);
-      // L'intercepteur dans apiClient s'occupe de mettre le header, pas besoin de le faire ici.
+
+      // --- LA CORRECTION CRUCIALE EST ICI ---
+      // On met à jour manuellement le header par défaut d'axios pour les requêtes futures de cette session.
+      // L'intercepteur utilisera ce header mis à jour.
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+      // Maintenant, on peut appeler fetchUser en étant certain que le bon token sera utilisé.
       await fetchUser();
     } catch (error) {
-      // Si une erreur se produit, on la propage pour que le formulaire de login puisse l'afficher
+      // Nettoyage en cas d'échec du login
+      delete apiClient.defaults.headers.common['Authorization'];
       throw error;
     }
   };
@@ -74,6 +80,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { token } = await apiRegister(userData);
       saveToken(token);
+      // On fait la même chose pour l'inscription
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       await fetchUser();
     } catch (error) {
       throw error;
@@ -83,7 +91,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     setUser(null);
     removeToken();
-    // L'intercepteur verra qu'il n'y a plus de token, pas besoin de supprimer le header manuellement.
+    // On nettoie le header par défaut lors de la déconnexion
+    delete apiClient.defaults.headers.common['Authorization'];
   };
   
   const refreshUser = async () => {
