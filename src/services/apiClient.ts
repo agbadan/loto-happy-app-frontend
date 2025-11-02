@@ -1,9 +1,11 @@
+// src/services/apiClient.ts
+
 /**
  * Client API centralisé pour toutes les requêtes vers le backend
  * Gère automatiquement l'ajout du token JWT et les erreurs
  */
 
-import { CONFIG } from './config';
+import { CONFIG } from '../utils/config'; // Assurez-vous que ce chemin est correct
 
 // Configuration de l'URL du backend
 const API_BASE_URL = CONFIG.API_BASE_URL;

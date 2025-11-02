@@ -1,8 +1,10 @@
 // src/utils/ticketsAPI.ts
 
-import apiClient  from './apiClient';
+// --- CORRECTION MAJEURE DE L'IMPORT ---
+// On importe l'objet 'api' depuis le bon client dans le dossier 'services'
+import { api } from '../services/apiClient';
 
-// Définir les types pour correspondre à la réponse du backend
+// Les interfaces restent les mêmes, elles correspondent à ce que le backend envoie
 export interface TicketDraw {
   id: string;
   date: string;
@@ -22,48 +24,34 @@ export interface Ticket {
 }
 
 /**
- * Récupère l'historique des tickets de l'utilisateur authentifié.
+ * Récupère l'historique des tickets de l'utilisateur authentifié
+ * en utilisant le client API central de l'application.
  */
 export const getPlayerTickets = async (): Promise<Ticket[]> => {
-  // --- LOG DE DÉBUT ---
-  console.log('[DEBUG] ticketsAPI.ts: Lancement de getPlayerTickets...');
+  console.log('[DEBUG] ticketsAPI.ts: Lancement de getPlayerTickets avec le client de /services...');
   
   try {
-    // --- APPEL API ---
-    // Correction importante : On récupère l'objet "response" complet d'axios
-    const response = await apiClient.get('/api/tickets/me');
+    // --- CORRECTION DE L'APPEL ---
+    // On utilise api.get() qui vient de votre fichier apiClient.ts
+    const data = await api.get<Ticket[]>('/api/tickets/me');
     
-    // --- LOG DE LA RÉPONSE BRUTE ---
-    // On log l'objet "response" entier pour voir le statut, les headers, etc.
-    console.log('[DEBUG] ticketsAPI.ts: Réponse complète reçue d\'axios:', response);
-
-    // On extrait les données de la propriété "data"
-    const data = response.data;
+    console.log('[DEBUG] ticketsAPI.ts: Données reçues avec succès via api.get():', data);
     
-    // --- LOG DES DONNÉES EXTRAITES ---
-    console.log('[DEBUG] ticketsAPI.ts: Données extraites de response.data:', data);
-    
-    // --- VÉRIFICATION DE SÉCURITÉ ---
-    // On s'assure que les données sont bien un tableau avant de continuer
+    // Vérification de sécurité
     if (!Array.isArray(data)) {
-        console.error('[ERREUR] ticketsAPI.ts: La réponse de l\'API (response.data) n\'est pas un tableau ! Reçu:', data);
+        console.error('[ERREUR] ticketsAPI.ts: La réponse de l\'API n\'est pas un tableau !', data);
         throw new Error("Format de données invalide reçu de l'API.");
     }
     
-    // Trier les tickets par date de création, du plus récent au plus ancien
+    // Trier les tickets par date de création
     const sortedData = data.sort((a: Ticket, b: Ticket) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     
-    // --- LOG DU RÉSULTAT FINAL ---
-    console.log('[DEBUG] ticketsAPI.ts: Données triées prêtes à être envoyées au composant:', sortedData);
-
+    console.log('[DEBUG] ticketsAPI.ts: Données triées prêtes à être renvoyées:', sortedData);
     return sortedData;
 
   } catch (error) {
-    // --- LOG EN CAS D'ERREUR ---
-    // Ce bloc s'exécutera si l'appel apiClient.get échoue ou si une erreur est jetée manuellement
-    console.error('[ERREUR] ticketsAPI.ts: Échec de l\'appel API ou de la validation des données.', error);
-    
-    // On propage l'erreur pour que le composant puisse l'afficher
-    throw new Error("Impossible de charger l'historique des paris.");
+    console.error('[ERREUR] ticketsAPI.ts: Échec de l\'appel API via api.get().', error);
+    // On propage l'erreur pour que le composant BetHistory puisse l'afficher
+    throw error; 
   }
 };
