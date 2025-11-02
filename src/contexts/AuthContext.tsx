@@ -71,6 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Pas besoin de supprimer le header manuellement, l'intercepteur gère tout.
       throw error;
     }
+  };
 
   const register = async (userData: any) => {
     try {
