@@ -10,14 +10,13 @@ import { toast } from 'sonner';
 
 type FilterType = 'ALL' | 'PENDING' | 'WON' | 'LOST';
 
+// Correction pour s'assurer que 'En attente' n'apparaît pas en double
 const filters: { label: string; value: FilterType }[] = [
     { label: 'Tous', value: 'ALL' },
     { label: 'À venir', value: 'PENDING' },
-    { label: 'En attente', value: 'PENDING' }, // Consolidé avec 'À venir'
     { label: 'Gagnés', value: 'WON' },
     { label: 'Perdus', value: 'LOST' },
-].filter((v, i, a) => a.findIndex(t => (t.value === v.value)) === i); // Supprime les doublons
-
+];
 
 export function BetHistory() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -27,31 +26,44 @@ export function BetHistory() {
 
   useEffect(() => {
     const fetchTickets = async () => {
+      // --- LOG DE DÉBUT ---
+      console.log('[DEBUG] BetHistory.tsx: Le composant se monte, déclenchement de fetchTickets...');
+      
       try {
         setLoading(true);
         setError(null);
         const data = await getPlayerTickets();
+        
+        // --- LOG DE RÉUSSITE ---
+        console.log('[DEBUG] BetHistory.tsx: Données reçues avec succès depuis getPlayerTickets:', data);
+        
         setTickets(data);
       } catch (err) {
+        // --- LOG D'ERREUR ---
+        console.error('[ERREUR] BetHistory.tsx: Une erreur a été attrapée dans le composant.', err);
         setError("Impossible de charger l'historique des paris.");
-        toast.error("Une erreur est survenue lors du chargement de vos paris.");
+        // Le toast est utile, mais on peut le commenter si ça devient bruyant
+        // toast.error("Une erreur est survenue lors du chargement de vos paris.");
       } finally {
         setLoading(false);
+        // --- LOG DE FIN ---
+        console.log('[DEBUG] BetHistory.tsx: fetchTickets terminé. Nouvel état -> loading: false.');
       }
     };
     fetchTickets();
-  }, []);
+  }, []); // Le tableau vide signifie que cet effet ne s'exécute qu'une seule fois
 
   const filteredTickets = activeFilter === 'ALL'
     ? tickets
     : tickets.filter(ticket => ticket.status === activeFilter);
 
-  const totalBets = tickets.length;
-  const totalStaked = tickets.reduce((sum, ticket) => sum + ticket.betAmount, 0);
-  const totalWon = tickets.reduce((sum, ticket) => sum + (ticket.winnings || 0), 0);
-  const winningBetsCount = tickets.filter(ticket => ticket.status === 'WON').length;
+  // --- LOG DE RENDU ---
+  // Ce log s'affichera à chaque fois que le composant est redessiné
+  console.log(`[DEBUG] BetHistory.tsx: Rendu du composant. État actuel -> Loading: ${loading}, Error: ${error}, Nb de tickets: ${tickets.length}, Filtre: ${activeFilter}`);
 
   if (loading) {
+    // --- LOG D'AFFICHAGE ---
+    console.log('[DEBUG] BetHistory.tsx: Affichage du Loader...');
     return (
       <div className="flex justify-center items-center p-8">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -60,12 +72,20 @@ export function BetHistory() {
   }
 
   if (error) {
+    // --- LOG D'AFFICHAGE ---
+    console.log('[DEBUG] BetHistory.tsx: Affichage du message d\'erreur.');
     return (
       <Card className="border-destructive/50 bg-destructive/10 p-8 text-center">
         <p className="text-destructive font-semibold">{error}</p>
       </Card>
     );
   }
+
+  // Calcul des statistiques après les vérifications de chargement et d'erreur
+  const totalBets = tickets.length;
+  const totalStaked = tickets.reduce((sum, ticket) => sum + ticket.betAmount, 0);
+  const totalWon = tickets.reduce((sum, ticket) => sum + (ticket.winnings || 0), 0);
+  const winningBetsCount = tickets.filter(ticket => ticket.status === 'WON').length;
 
   return (
     <div className="space-y-6">
