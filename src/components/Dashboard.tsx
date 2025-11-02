@@ -1,3 +1,5 @@
+// src/components/Dashboard.tsx
+
 import { useState, useEffect } from "react";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
@@ -10,7 +12,8 @@ import { Badge } from "./ui/badge";
 import { Clock, Calendar, Trophy, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../contexts/AuthContext";
-import { getUpcomingDraws, Draw } from "../utils/drawsAPI";
+// Le type Draw ici attend `drawDate`, mais nous allons l'ignorer et utiliser les champs existants
+import { getUpcomingDraws, Draw } from "../utils/drawsAPI"; 
 import { getOperators, Operator } from "../utils/dashboardAPI";
 
 interface DashboardProps {
@@ -45,12 +48,11 @@ export function Dashboard({
       try {
         const [operatorsData, drawsData] = await Promise.all([getOperators(), getUpcomingDraws()]);
         
-        // Note: l'API /upcoming ne renvoie pas date/time mais drawDate
-        // Nous adaptons la logique de filtrage à la structure de `drawsAPI`
         const now = new Date();
+        // CORRECTION : On utilise `draw.date` et `draw.time` comme vu dans la réponse de l'API
         const validDraws = drawsData
-          .filter(draw => new Date(draw.drawDate).getTime() > now.getTime())
-          .sort((a, b) => new Date(a.drawDate).getTime() - new Date(b.drawDate).getTime());
+          .filter(draw => new Date(`${draw.date}T${draw.time}:00Z`).getTime() > now.getTime())
+          .sort((a, b) => new Date(`${a.date}T${a.time}:00Z`).getTime() - new Date(`${b.date}T${b.time}:00Z`).getTime());
         
         setOperators(operatorsData);
         setAvailableDraws(validDraws);
@@ -70,7 +72,8 @@ export function Dashboard({
     if (!featuredDraw) return;
     const timer = setInterval(() => {
       const now = new Date();
-      const drawDateTime = new Date(featuredDraw.drawDate);
+      // CORRECTION : On combine `featuredDraw.date` et `featuredDraw.time`
+      const drawDateTime = new Date(`${featuredDraw.date}T${featuredDraw.time}:00Z`);
       const diff = drawDateTime.getTime() - now.getTime();
 
       if (diff <= 0) {
@@ -101,14 +104,13 @@ export function Dashboard({
   }
 
   const featuredOperator = featuredDraw ? getOperatorById(featuredDraw.operatorId) : null;
-  const featuredDrawDate = featuredDraw ? new Date(featuredDraw.drawDate) : null;
-
+  
   return (
     <div className="min-h-screen bg-background">
       <Header balance={playBalance} onRecharge={() => setRechargeOpen(true)} onProfile={onNavigateToProfile} onLogout={onLogout}/>
       {user && <WinNotificationPanel />}
       <main className="container px-3 sm:px-4 py-6 sm:py-8 flex-1 flex flex-col">
-        {featuredDraw && featuredOperator && featuredDrawDate ? (
+        {featuredDraw && featuredOperator ? (
             <section className="mb-8 sm:mb-12 md:mb-16">
             <Card className="relative overflow-hidden border-none gradient-orange-violet confetti-bg">
               <div className="relative z-10 p-4 sm:p-6 md:p-8 text-center"><div className="mx-auto max-w-3xl space-y-4 sm:space-y-6">
@@ -122,9 +124,13 @@ export function Dashboard({
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4 max-w-md mx-auto">
                   <div className="flex items-center justify-center gap-2 text-white/90 mb-2">
-                    <Calendar className="h-4 w-4" /><span className="text-xs sm:text-sm">{featuredDrawDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+                    {/* CORRECTION : On utilise `featuredDraw.date` */}
+                    <Calendar className="h-4 w-4" /><span className="text-xs sm:text-sm">{new Date(`${featuredDraw.date}T00:00:00Z`).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
                   </div>
-                  <div className="flex items-center justify-center gap-2 text-white mb-3"><Clock className="h-4 w-4" /><span className="text-xs sm:text-sm">Tirage à {featuredDrawDate.toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'})}</span></div>
+                  <div className="flex items-center justify-center gap-2 text-white mb-3">
+                    {/* CORRECTION : On utilise `featuredDraw.time` */}
+                    <Clock className="h-4 w-4" /><span className="text-xs sm:text-sm">Tirage à {featuredDraw.time}</span>
+                  </div>
                   <div className="flex justify-center gap-3">
                     {[{ label: "Heures", value: countdownTime.hours }, { label: "Min", value: countdownTime.minutes }, { label: "Sec", value: countdownTime.seconds }].map((item) => (
                       <div key={item.label} className="flex flex-col items-center gap-1">
@@ -147,7 +153,6 @@ export function Dashboard({
             {availableDraws.map(draw => {
                 const operator = getOperatorById(draw.operatorId);
                 if (!operator) return null;
-                const drawDate = new Date(draw.drawDate);
                 return (
                 <Card key={draw.id} className="group relative overflow-hidden border-2 border-border hover:border-[#FFD700] transition-all cursor-pointer" onClick={() => onNavigateToGame(draw.id)}>
                     <div className="absolute inset-0 opacity-10" style={{ backgroundColor: operator.color }}/>
@@ -157,8 +162,10 @@ export function Dashboard({
                         <div><h3 className="font-bold text-lg">{operator.name}</h3><p className="text-sm text-muted-foreground">{operator.country}</p></div>
                     </div>
                     <div className="space-y-2 mb-4">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground"><Calendar className="h-4 w-4" /><span>{drawDate.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}</span></div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground"><Clock className="h-4 w-4" /><span>{drawDate.toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'})}</span></div>
+                        {/* CORRECTION : On utilise `draw.date` */}
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground"><Calendar className="h-4 w-4" /><span>{new Date(`${draw.date}T00:00:00Z`).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}</span></div>
+                        {/* CORRECTION : On utilise `draw.time` */}
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground"><Clock className="h-4 w-4" /><span>{draw.time}</span></div>
                     </div>
                     <Button className="w-full bg-[#FFD700] text-[#121212] hover:bg-[#FFD700]/90">Jouer</Button>
                     </div>
