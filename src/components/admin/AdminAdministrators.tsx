@@ -38,8 +38,6 @@ export function AdminAdministrators() {
     setIsLoading(true); setError(null);
     try {
       const data = await getAdmins();
-      // --- DEBUG 1: Affiche les données brutes reçues de l'API ---
-      console.log("DEBUG 1: Données brutes reçues de l'API", data);
       setAdmins(data);
     } catch (err) { setError("Impossible de charger la liste des administrateurs."); console.error(err); } 
     finally { setIsLoading(false); }
@@ -63,15 +61,10 @@ export function AdminAdministrators() {
   };
   
   const handleEditAdmin = async () => {
-    if (!selectedAdmin) {
-        console.error("ERREUR: handleEditAdmin appelé sans selectedAdmin.");
-        return;
-    }
-    // --- DEBUG 4: Affiche l'objet juste avant l'appel API ---
-    console.log("DEBUG 4: Objet utilisé pour l'appel API", selectedAdmin);
+    if (!selectedAdmin) return;
     setIsSubmitting(true);
     try {
-      await updateAdminRole(selectedAdmin.id, editRole);
+      await updateAdminRole(selectedAdmin._id, editRole);
       toast.success("Rôle de l'administrateur mis à jour.");
       await fetchAdmins();
       setEditModalOpen(false);
@@ -84,7 +77,7 @@ export function AdminAdministrators() {
     const newStatus = admin.status === 'active' ? 'suspended' : 'active';
     toast.info("Mise à jour du statut en cours...");
     try {
-      await updateAdminStatus(admin.id, newStatus);
+      await updateAdminStatus(admin._id, newStatus);
       toast.success("Statut mis à jour avec succès !");
       setEditModalOpen(false);
       await fetchAdmins();
@@ -92,8 +85,6 @@ export function AdminAdministrators() {
   };
   
   const openEditModal = (admin: AdminUser) => {
-    // --- DEBUG 3: Affiche l'objet admin au moment du clic ---
-    console.log("DEBUG 3: Objet admin au clic sur le bouton Modifier", admin);
     setSelectedAdmin(admin);
     setEditRole(admin.role as AdminRole);
     setEditModalOpen(true);
@@ -123,21 +114,17 @@ export function AdminAdministrators() {
           <table className="w-full">
             <thead className="bg-muted"><tr className="border-b"><th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Utilisateur</th><th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Rôle</th><th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Statut</th><th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider">Actions</th></tr></thead>
             <tbody className="divide-y divide-border">
-              {admins.map((admin) => {
-                // --- DEBUG 2: Affiche l'objet utilisé pour le rendu de chaque ligne ---
-                console.log(`DEBUG 2: Rendu de l'admin ${admin.username}`, admin);
-                return (
-                  <tr key={admin.id} className="hover:bg-accent/50">
-                    <td className="px-4 py-4">
-                      <div className="font-medium text-foreground">{admin.username}</div>
-                      <div className="text-xs text-muted-foreground">{admin.email}</div>
-                    </td>
-                    <td className="px-4 py-4"><Badge className={`${getRoleBadgeColor(admin.role)} text-white`}>{admin.role}</Badge></td>
-                    <td className="px-4 py-4"><Badge variant={admin.status === 'active' ? 'default' : 'destructive'} className={admin.status === 'active' ? 'bg-green-500' : ''}>{admin.status === 'active' ? 'Actif' : 'Suspendu'}</Badge></td>
-                    <td className="px-4 py-4 text-right"><div className="flex justify-end gap-2"><Button size="sm" variant="outline" onClick={() => openEditModal(admin)}><Edit className="h-4 w-4" /></Button></div></td>
-                  </tr>
-                );
-              })}
+              {admins.map((admin) => (
+                <tr key={admin._id} className="hover:bg-accent/50">
+                  <td className="px-4 py-4">
+                    <div className="font-medium text-foreground">{admin.username}</div>
+                    <div className="text-xs text-muted-foreground">{admin.email}</div>
+                  </td>
+                  <td className="px-4 py-4"><Badge className={`${getRoleBadgeColor(admin.role)} text-white`}>{admin.role}</Badge></td>
+                  <td className="px-4 py-4"><Badge variant={admin.status === 'active' ? 'default' : 'destructive'} className={admin.status === 'active' ? 'bg-green-500' : ''}>{admin.status === 'active' ? 'Actif' : 'Suspendu'}</Badge></td>
+                  <td className="px-4 py-4 text-right"><div className="flex justify-end gap-2"><Button size="sm" variant="outline" onClick={() => openEditModal(admin)}><Edit className="h-4 w-4" /></Button></div></td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

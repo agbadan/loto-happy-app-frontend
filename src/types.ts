@@ -2,7 +2,7 @@
 
 // --- TYPE UTILISATEUR GÉNÉRIQUE ---
 export interface User {
-  id: string;
+  _id: string;
   username: string;
   phoneNumber: string;
   email: string;
@@ -24,7 +24,7 @@ export interface AdminUser extends User {
 // --- TYPE POUR LES RETRAITS (utilisé dans AdminFinance) ---
 // MIS À JOUR pour correspondre à la structure de l'API
 export interface Withdrawal {
-  id: string;
+  _id: string;
   amount: number;
   provider: string;
   withdrawalPhoneNumber: string; // Numéro utilisé pour le retrait
@@ -33,7 +33,7 @@ export interface Withdrawal {
   processedDate: string | null;
   processedBy: string | null;
   playerInfo: { // Le sous-objet correct
-    id: string;
+    _id: string;
     username: string;
     phoneNumber: string; // Numéro de téléphone principal du joueur
   };
