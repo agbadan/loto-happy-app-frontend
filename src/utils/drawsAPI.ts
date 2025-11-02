@@ -1,6 +1,6 @@
 // src/utils/drawsAPI.ts
 
-import apiClient from '../services/apiClient';
+import apiClient from '../utils/apiClient';
 
 // ====================================================================
 // ===== INTERFACES (Mises à jour avec le nouveau statut 'pending') ====
