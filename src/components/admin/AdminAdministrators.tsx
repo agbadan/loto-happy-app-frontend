@@ -34,15 +34,24 @@ export function AdminAdministrators() {
   
   const [editRole, setEditRole] = useState<AdminRole>('Support Client');
   
-  const fetchAdmins = async () => {
-    setIsLoading(true); setError(null);
-    try {
-      const data = await getAdmins();
-      setAdmins(data);
-    } catch (err) { setError("Impossible de charger la liste des administrateurs."); console.error(err); } 
-    finally { setIsLoading(false); }
-  };
-  
+    const fetchAdmins = async () => {
+      setIsLoading(true); 
+      setError(null);
+      try {
+        const data = await getAdmins();
+        // Correction défensive : s'assurer que chaque admin a un champ `id`.
+        const sanitizedData = data.map(admin => ({
+          ...admin,
+          id: admin.id || admin._id, // Garantit que `id` est peuplé, en utilisant `_id` comme fallback.
+        }));
+        setAdmins(sanitizedData as AdminUser[]);
+      } catch (err) { 
+        setError("Impossible de charger la liste des administrateurs."); 
+        console.error(err); 
+      } finally { 
+        setIsLoading(false); 
+      }
+    };  
   useEffect(() => { fetchAdmins(); }, []);
   
   const handleCreateAdmin = async () => {

@@ -2,7 +2,8 @@
 
 // --- TYPE UTILISATEUR GÉNÉRIQUE ---
 export interface User {
-  id: string;
+  id?: string; // Rendu optionnel pour la sanitisation
+  _id?: string; // Ajouté pour la compatibilité avec la réponse brute de l'API
   username: string;
   phoneNumber: string;
   email: string;
