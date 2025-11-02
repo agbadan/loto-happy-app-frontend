@@ -1,6 +1,6 @@
 // src/utils/withdrawalsAPI.ts
 
-import apiClient from '../services/apiClient_';
+import apiClient from '../services/apiClient';
 import { Withdrawal, FinancialStats } from '../types';
 
 /**

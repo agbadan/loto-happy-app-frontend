@@ -1,6 +1,6 @@
 // src/utils/dashboardAPI.ts
 
-import apiClient from '../services/apiClient_';
+import apiClient from '../services/apiClient';
 import { Ticket } from './drawsAPI';
 
 // ====================================================================

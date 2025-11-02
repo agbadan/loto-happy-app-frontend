@@ -1,6 +1,6 @@
 // src/utils/playerAPI.ts
 
-import apiClient from '../services/apiClient_';
+import apiClient from '../services/apiClient';
 
 // --- INTERFACES POUR LES JOUEURS ---
 
