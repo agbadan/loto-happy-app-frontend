@@ -1,7 +1,7 @@
 // src/contexts/AuthContext.tsx
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import apiClient from '../services/apiClient';
+import apiClient from '../services/apiClient_';
 import { 
   loginUser as apiLogin, 
   registerUser as apiRegister 

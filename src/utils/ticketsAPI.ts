@@ -1,10 +1,11 @@
 // src/utils/ticketsAPI.ts
 
-// --- CORRECTION MAJEURE DE L'IMPORT ---
-// On importe l'objet 'api' depuis le bon client dans le dossier 'services'
-import { api } from '../services/apiClient';
+// --- L'IMPORT LE PLUS IMPORTANT ---
+// Il importe le VRAI client axios depuis le fichier que vous venez de me montrer.
+// Assurez-vous que le chemin est correct. S'ils sont dans le même dossier, c'est './apiClient'.
+import apiClient from '../services/apiClient';
 
-// Les interfaces restent les mêmes, elles correspondent à ce que le backend envoie
+// Les interfaces sont correctes et correspondent à la réponse réseau que vous avez capturée.
 export interface TicketDraw {
   id: string;
   date: string;
@@ -24,34 +25,29 @@ export interface Ticket {
 }
 
 /**
- * Récupère l'historique des tickets de l'utilisateur authentifié
- * en utilisant le client API central de l'application.
+ * Récupère l'historique des tickets de l'utilisateur authentifié.
  */
 export const getPlayerTickets = async (): Promise<Ticket[]> => {
-  console.log('[DEBUG] ticketsAPI.ts: Lancement de getPlayerTickets avec le client de /services...');
-  
   try {
-    // --- CORRECTION DE L'APPEL ---
-    // On utilise api.get() qui vient de votre fichier apiClient.ts
-    const data = await api.get<Ticket[]>('/api/tickets/me');
+    // On utilise le vrai apiClient. On attend la réponse complète.
+    const response = await apiClient.get<Ticket[]>('/api/tickets/me');
     
-    console.log('[DEBUG] ticketsAPI.ts: Données reçues avec succès via api.get():', data);
+    // On extrait les données de la propriété 'data' de la réponse axios.
+    const data = response.data;
     
-    // Vérification de sécurité
     if (!Array.isArray(data)) {
-        console.error('[ERREUR] ticketsAPI.ts: La réponse de l\'API n\'est pas un tableau !', data);
+        console.error('API Error: Expected an array of tickets, but received:', data);
         throw new Error("Format de données invalide reçu de l'API.");
     }
     
-    // Trier les tickets par date de création
-    const sortedData = data.sort((a: Ticket, b: Ticket) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    // Trier les tickets par date de création, du plus récent au plus ancien
+    const sortedData = data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     
-    console.log('[DEBUG] ticketsAPI.ts: Données triées prêtes à être renvoyées:', sortedData);
     return sortedData;
 
   } catch (error) {
-    console.error('[ERREUR] ticketsAPI.ts: Échec de l\'appel API via api.get().', error);
-    // On propage l'erreur pour que le composant BetHistory puisse l'afficher
-    throw error; 
+    console.error("Erreur critique dans getPlayerTickets:", error);
+    // On propage l'erreur pour que BetHistory puisse l'afficher à l'utilisateur.
+    throw error;
   }
 };

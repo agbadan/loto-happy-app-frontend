@@ -1,6 +1,6 @@
 // src/utils/adminAPI.ts
 
-import apiClient from '../services/apiClient';
+import apiClient from '../services/apiClient_';
 import { AdminUser } from '../types'; // CORRECTION : Importer depuis le fichier central
 
 // =====================================================================

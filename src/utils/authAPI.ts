@@ -1,6 +1,6 @@
 // src/utils/authAPI.ts
 
-import apiClient from '../services/apiClient';
+import apiClient from '../services/apiClient_';
 
 // ===== INTERFACES =====
 // Nous gardons ton interface User qui est bien détaillée.
