@@ -60,19 +60,27 @@ export function AdminFinance() {
     setIsLoading({ stats: true, withdrawals: true });
     setError(null);
     try {
-      const [statsData, withdrawalsData] = await Promise.all([
+      // On lance tous les appels en parallèle pour plus d'efficacité
+      const [statsData, pending, approved, rejected] = await Promise.all([
         getGlobalFinancialStats(),
-        getWithdrawals(),
+        getWithdrawals('pending'),
+        getWithdrawals('approved'),
+        getWithdrawals('rejected'),
       ]);
+
       setStats(statsData);
-      
-      // Correction défensive : s'assurer que chaque objet a un `id`.
-      const sanitizedWithdrawals = withdrawalsData.map(w => ({
+
+      // On combine les résultats des trois appels en un seul tableau
+      const combinedWithdrawals = [...pending, ...approved, ...rejected];
+
+      // On applique la même correction défensive pour s'assurer que chaque objet a un `id`
+      const sanitizedWithdrawals = combinedWithdrawals.map(w => ({
         ...w,
         id: w.id || w._id,
       }));
 
       setAllWithdrawals(sanitizedWithdrawals as Withdrawal[]);
+
     } catch (err) { 
       setError("Impossible de charger les données. Une erreur est survenue."); 
       console.error("Erreur détaillée:", err);

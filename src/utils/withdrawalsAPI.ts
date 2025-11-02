@@ -13,11 +13,14 @@ export const getGlobalFinancialStats = async (): Promise<FinancialStats> => {
 };
 
 /**
- * Récupère la liste de toutes les demandes de retrait pour le panel admin.
+ * Récupère la liste des demandes de retrait pour le panel admin, potentiellement filtrée par statut.
+ * @param {string} [status] - Le statut pour filtrer les demandes (ex: 'pending', 'approved').
  * @returns {Promise<Withdrawal[]>} Une liste des demandes de retrait.
  */
-export const getWithdrawals = async (): Promise<Withdrawal[]> => {
-    const response = await apiClient.get<{ items: Withdrawal[] }>('/api/admin/withdrawals/');
+export const getWithdrawals = async (status?: 'pending' | 'approved' | 'rejected'): Promise<Withdrawal[]> => {
+    // On construit l'URL avec le paramètre de statut s'il est fourni.
+    const url = status ? `/api/admin/withdrawals/?status=${status}` : '/api/admin/withdrawals/';
+    const response = await apiClient.get<{ items: Withdrawal[] }>(url);
     // L'API enveloppe la liste dans un objet { items: [...] }
     return response.data.items;
 };
