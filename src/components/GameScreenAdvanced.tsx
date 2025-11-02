@@ -14,7 +14,6 @@ import { ArrowLeft, Sparkles, Calendar, Clock, Calculator, Loader2 } from "lucid
 import { toast } from "sonner";
 import { motion } from "motion/react";
 import { useAuth } from "../contexts/AuthContext";
-// NOUVEAUX IMPORTS API
 import { getDrawById, createTicket, Draw } from "../utils/drawsAPI";
 import { getOperators, Operator } from "../utils/dashboardAPI";
 import { BetType, BET_TYPES_CONFIG, calculatePermutationCombinations } from "../utils/games";
@@ -56,17 +55,13 @@ export function GameScreenAdvanced({
           getOperators()
         ]);
         const currentOperator = operatorsData.find(op => op.id === drawData.operatorId);
-
-        if (!currentOperator) {
-          throw new Error("Opérateur pour ce tirage introuvable.");
-        }
-        
+        if (!currentOperator) throw new Error("Opérateur pour ce tirage introuvable.");
         setDraw(drawData);
         setOperator(currentOperator);
       } catch (error) {
         console.error("Erreur de chargement pour GameScreenAdvanced:", error);
         toast.error("Impossible de charger les détails du jeu.");
-        onBack(); // Revenir en arrière si les données ne peuvent pas être chargées
+        onBack();
       } finally {
         setLoading(false);
       }
@@ -97,7 +92,7 @@ export function GameScreenAdvanced({
 
   const quickPick = () => {
     const randomNumbers: number[] = [];
-    const count = betTypeConfig.minNumbers; // Sélectionne le minimum requis
+    const count = betTypeConfig.minNumbers;
     while (randomNumbers.length < count) {
       const num = Math.floor(Math.random() * operator.numbersPool) + 1;
       if (!randomNumbers.includes(num)) {
@@ -110,8 +105,7 @@ export function GameScreenAdvanced({
 
   const getTotalCost = () => {
     if (betType === 'PERMUTATION') {
-      const combinations = calculatePermutationCombinations(selectedNumbers.length);
-      return combinations * betAmount;
+      return calculatePermutationCombinations(selectedNumbers.length) * betAmount;
     }
     return betAmount;
   };
@@ -128,7 +122,6 @@ export function GameScreenAdvanced({
       setRechargeOpen(true);
       return;
     }
-
     setIsSubmitting(true);
     try {
       await createTicket({
@@ -137,11 +130,9 @@ export function GameScreenAdvanced({
         numbers: selectedNumbers.join(','),
         betAmount: totalCost,
       });
-
       toast.success(`Pari de ${totalCost.toLocaleString('fr-FR')} F placé avec succès !`);
-      await refreshUser(); // Rafraîchir le solde de l'utilisateur
-      setTimeout(onBack, 1000); // Revenir à l'écran précédent après un court délai
-
+      await refreshUser();
+      setTimeout(onBack, 1000);
     } catch (error) {
       console.error("Erreur lors du placement du pari:", error);
       toast.error("Une erreur est survenue. Votre pari n'a pas été placé.");
@@ -166,7 +157,11 @@ export function GameScreenAdvanced({
               <p className="text-sm text-muted-foreground mb-4">Choisissez {betTypeConfig.minNumbers === betTypeConfig.maxNumbers ? betTypeConfig.minNumbers : `${betTypeConfig.minNumbers} à ${betTypeConfig.maxNumbers}`} numéro(s).</p>
               <div className="grid grid-cols-9 sm:grid-cols-10 gap-2">
                 {numbers.map(num => (
-                  <motion.button key={num} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={() => toggleNumber(num)} className={`aspect-square flex items-center justify-center rounded-lg transition-all duration-200 font-semibold text-sm ${selectedNumbers.includes(num) ? 'bg-yellow-500 text-black shadow-lg' : 'bg-muted text-foreground hover:bg-muted-foreground/20'}`}>
+                  <motion.button key={num} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={() => toggleNumber(num)} className={`aspect-square flex items-center justify-center rounded-lg transition-all duration-200 font-semibold text-sm ${
+                    selectedNumbers.includes(num) 
+                      ? 'bg-[#4F00BC] text-white shadow-lg' // CORRECTION: Couleur violette pour la sélection
+                      : 'bg-muted text-foreground hover:bg-muted-foreground/20'
+                  }`}>
                     {num}
                   </motion.button>
                 ))}
