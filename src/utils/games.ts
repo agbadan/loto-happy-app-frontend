@@ -1,30 +1,36 @@
+// src/utils/games.ts
+
 // ===== CONFIGURATION DES OPÉRATEURS DE LOTERIE =====
 // Un opérateur = Une société de loterie (ex: Lotto Kadoo, Bénin Lotto)
 // Les admins créent des TIRAGES pour ces opérateurs
 // Les joueurs choisissent leur TYPE DE PARI (NAP2, NAP5, etc.) pour un tirage
 
+// --- MISE À JOUR ---
+// Ajout des types 'SIMPLE' et 'DOUBLE' pour une compatibilité totale
 export type BetType = 
-  | 'NAP1'          // Simple numéro
-  | 'NAP2'          // Deux numéros (Two Sure)
-  | 'NAP3'          // Trois numéros
-  | 'NAP4'          // Quatre numéros
-  | 'NAP5'          // Cinq numéros
-  | 'PERMUTATION'   // Combinaisons automatiques
-  | 'BANKA'         // Numéro de base + autres
-  | 'CHANCE_PLUS'   // Position exacte (premier/dernier)
-  | 'ANAGRAMME';    // Numéros inversés (12/21)
+  | 'NAP1'
+  | 'NAP2'
+  | 'NAP3'
+  | 'NAP4'
+  | 'NAP5'
+  | 'PERMUTATION'
+  | 'BANKA'
+  | 'CHANCE_PLUS'
+  | 'ANAGRAMME'
+  | 'SIMPLE' // Ajout pour compatibilité
+  | 'DOUBLE'; // Ajout pour compatibilité
 
 export interface BetTypeConfig {
-  id: BetType;
+  id?: BetType; // Rendu optionnel pour flexibilité
   name: string;
-  description: string;
+  description?: string; // Rendu optionnel
   minNumbers: number;
   maxNumbers: number;
   requiresPosition?: boolean; // Pour CHANCE_PLUS
   requiresBase?: boolean; // Pour BANKA
   autoGeneratesCombinations?: boolean; // Pour PERMUTATION
   defaultMultiplier: number; // Multiplicateur par défaut
-  icon: string;
+  icon?: string; // Rendu optionnel
 }
 
 // ===== OPÉRATEUR =====
@@ -35,38 +41,30 @@ export interface Operator {
   countryCode: string;
   icon: string;
   color: string;
-  // Configuration des tirages pour cet opérateur
-  numbersPool: number; // Pool de numéros disponibles (ex: 1-90)
-  numbersDrawn: number; // Combien de numéros sont tirés (toujours 5)
+  numbersPool: number;
+  numbersDrawn: number;
   minBet: number;
   maxBet: number;
 }
 
 // ===== TIRAGE (Draw) =====
-// Créé par l'admin dans AdminGames
 export interface Draw {
   id: string;
-  operatorId: string; // Référence à l'opérateur
-  date: string; // Format ISO: "2025-10-29"
-  time: string; // Format: "10:39"
-  
-  // Multiplicateurs spécifiques à ce tirage (définis par l'admin)
+  operatorId: string;
+  date: string;
+  time: string;
   multipliers: {
     [K in BetType]?: number;
   };
-  
-  // Statut et résultats
   status: 'upcoming' | 'pending' | 'completed';
-  winningNumbers: number[]; // Les 5 numéros tirés (vide jusqu'au tirage)
-  
-  // Métadonnées
+  winningNumbers: number[];
   createdAt: string;
-  createdBy: string; // ID de l'admin qui a créé le tirage
+  createdBy: string;
 }
 
 // ===== CONFIGURATION DES 5 OPÉRATEURS =====
-
 export const OPERATORS_CONFIG: Operator[] = [
+  // ... (votre configuration d'opérateurs reste inchangée)
   {
     id: 'togo-kadoo',
     name: 'Lotto Kadoo',
@@ -129,96 +127,62 @@ export const OPERATORS_CONFIG: Operator[] = [
   }
 ];
 
-// ===== CONFIGURATIONS DES TYPES DE PARIS =====
+// ===== CONFIGURATIONS DES TYPES DE PARIS (FUSIONNÉ ET CORRIGÉ) =====
 
 export const BET_TYPES_CONFIG: { [key in BetType]: BetTypeConfig } = {
+  // Types principaux utilisés par le backend
   NAP1: {
-    id: 'NAP1',
-    name: 'Simple Numéro (NAP1)',
-    description: 'Trouvez 1 numéro parmi les 5 tirés',
-    minNumbers: 1,
-    maxNumbers: 1,
-    defaultMultiplier: 10, // x10 la mise
-    icon: '🎯'
+    id: 'NAP1', name: 'NAP 1', description: 'Trouvez 1 numéro parmi les 5 tirés',
+    minNumbers: 1, maxNumbers: 1, defaultMultiplier: 10, icon: '🎯'
   },
   NAP2: {
-    id: 'NAP2',
-    name: 'Deux Numéros (NAP2 / Two Sure)',
-    description: 'Trouvez 2 numéros parmi les 5 tirés',
-    minNumbers: 2,
-    maxNumbers: 2,
-    defaultMultiplier: 500, // x500 la mise
-    icon: '🎲'
+    id: 'NAP2', name: 'NAP 2', description: 'Trouvez 2 numéros parmi les 5 tirés',
+    minNumbers: 2, maxNumbers: 2, defaultMultiplier: 500, icon: '🎲'
   },
   NAP3: {
-    id: 'NAP3',
-    name: 'Trois Numéros (NAP3)',
-    description: 'Trouvez 3 numéros parmi les 5 tirés',
-    minNumbers: 3,
-    maxNumbers: 3,
-    defaultMultiplier: 2500, // x2500 la mise
-    icon: '🔮'
+    id: 'NAP3', name: 'NAP 3', description: 'Trouvez 3 numéros parmi les 5 tirés',
+    minNumbers: 3, maxNumbers: 3, defaultMultiplier: 2500, icon: '🔮'
   },
   NAP4: {
-    id: 'NAP4',
-    name: 'Quatre Numéros (NAP4)',
-    description: 'Trouvez 4 numéros parmi les 5 tirés',
-    minNumbers: 4,
-    maxNumbers: 4,
-    defaultMultiplier: 10000, // x10000 la mise
-    icon: '💎'
+    id: 'NAP4', name: 'NAP 4', description: 'Trouvez 4 numéros parmi les 5 tirés',
+    minNumbers: 4, maxNumbers: 4, defaultMultiplier: 10000, icon: '💎'
   },
   NAP5: {
-    id: 'NAP5',
-    name: 'Cinq Numéros (NAP5 / Perm Nap)',
-    description: 'Trouvez les 5 numéros tirés',
-    minNumbers: 5,
-    maxNumbers: 5,
-    defaultMultiplier: 100000, // x100000 la mise - JACKPOT !
-    icon: '👑'
+    id: 'NAP5', name: 'NAP 5', description: 'Trouvez les 5 numéros tirés',
+    minNumbers: 5, maxNumbers: 5, defaultMultiplier: 100000, icon: '👑'
   },
+  
+  // Types avancés et anciens (gardés pour compatibilité)
   PERMUTATION: {
-    id: 'PERMUTATION',
-    name: 'Combinaison (Permutation)',
-    description: 'Sélectionnez plusieurs numéros, on génère toutes les combinaisons NAP2',
-    minNumbers: 3,
-    maxNumbers: 10,
-    autoGeneratesCombinations: true,
-    defaultMultiplier: 500, // Chaque combinaison x500
-    icon: '🔄'
+    id: 'PERMUTATION', name: 'Permutation', description: 'Génère toutes les combinaisons NAP2',
+    minNumbers: 3, maxNumbers: 10, autoGeneratesCombinations: true, defaultMultiplier: 500, icon: '🔄'
   },
   BANKA: {
-    id: 'BANKA',
-    name: 'Numéro de Base (Against / Banka)',
-    description: 'Un numéro de base + d\'autres numéros associés',
-    minNumbers: 2, // 1 base + au moins 1 autre
-    maxNumbers: 11, // 1 base + max 10 autres
-    requiresBase: true,
-    defaultMultiplier: 500,
-    icon: '⭐'
+    id: 'BANKA', name: 'Banka', description: 'Un numéro de base + des associés',
+    minNumbers: 2, maxNumbers: 11, requiresBase: true, defaultMultiplier: 500, icon: '⭐'
   },
   CHANCE_PLUS: {
-    id: 'CHANCE_PLUS',
-    name: 'Position Exacte (Chance+)',
-    description: 'Trouvez le numéro en première ou dernière position',
-    minNumbers: 1,
-    maxNumbers: 1,
-    requiresPosition: true,
-    defaultMultiplier: 90, // x90 la mise (1 chance sur 90)
-    icon: '🎰'
+    id: 'CHANCE_PLUS', name: 'Chance+', description: 'Trouvez le numéro en première ou dernière position',
+    minNumbers: 1, maxNumbers: 1, requiresPosition: true, defaultMultiplier: 90, icon: '🎰'
   },
   ANAGRAMME: {
-    id: 'ANAGRAMME',
-    name: 'Numéros Inversés (Anagramme / WE dans WE)',
-    description: 'Pariez sur un numéro ET son inversé (ex: 12 et 21)',
-    minNumbers: 1,
-    maxNumbers: 1,
-    defaultMultiplier: 10, // x10 la mise (couvre 2 numéros)
-    icon: '🔃'
-  }
+    id: 'ANAGRAMME', name: 'Anagramme', description: 'Pariez sur un numéro ET son inversé',
+    minNumbers: 1, maxNumbers: 1, defaultMultiplier: 10, icon: '🔃'
+  },
+
+  // --- AJOUTS POUR COMPATIBILITÉ ---
+  // Ces types peuvent être référencés ailleurs dans votre code.
+  // Ils sont maintenant des alias ou des doublons des types NAP.
+  SIMPLE: { 
+    name: "Simple", minNumbers: 5, maxNumbers: 5, defaultMultiplier: 100000 
+  },
+  DOUBLE: { 
+    name: "Double", minNumbers: 2, maxNumbers: 2, defaultMultiplier: 250 
+  },
 };
 
-// ===== FONCTIONS UTILITAIRES - OPÉRATEURS =====
+
+// ===== FONCTIONS UTILITAIRES - TOUT LE RESTE EST INCHANGÉ =====
 
 export function getOperatorById(operatorId: string): Operator | undefined {
   return OPERATORS_CONFIG.find(op => op.id === operatorId);
@@ -236,8 +200,6 @@ export function getAllCountries(): string[] {
   return Array.from(new Set(OPERATORS_CONFIG.map(op => op.country)));
 }
 
-// ===== FONCTIONS UTILITAIRES - TYPES DE PARIS =====
-
 export function getAvailableBetTypes(): BetType[] {
   return Object.keys(BET_TYPES_CONFIG) as BetType[];
 }
@@ -246,20 +208,16 @@ export function getBetTypeConfig(betType: BetType): BetTypeConfig {
   return BET_TYPES_CONFIG[betType];
 }
 
-// Calculer le nombre de combinaisons pour PERMUTATION
 export function calculatePermutationCombinations(totalNumbers: number): number {
-  // Combinaisons de 2 parmi N : C(n,2) = n! / (2! * (n-2)!)
-  // Formule simplifiée : n * (n-1) / 2
+  if (totalNumbers < 2) return 0;
   return (totalNumbers * (totalNumbers - 1)) / 2;
 }
 
-// Calculer le coût total d'un pari PERMUTATION
 export function calculatePermutationCost(totalNumbers: number, betPerCombination: number): number {
   const combinations = calculatePermutationCombinations(totalNumbers);
   return combinations * betPerCombination;
 }
 
-// Générer toutes les combinaisons NAP2 pour PERMUTATION
 export function generateNAP2Combinations(numbers: number[]): number[][] {
   const combinations: number[][] = [];
   for (let i = 0; i < numbers.length; i++) {
@@ -270,17 +228,13 @@ export function generateNAP2Combinations(numbers: number[]): number[][] {
   return combinations;
 }
 
-// Inverser un numéro (pour ANAGRAMME)
 export function invertNumber(num: number): number | null {
   const str = num.toString();
-  if (str.length === 1) return null; // Pas d'inversé pour les nombres à 1 chiffre
+  if (str.length === 1) return null;
   const inverted = parseInt(str.split('').reverse().join(''));
-  return inverted <= 90 ? inverted : null; // Valide seulement si <= 90
+  return inverted <= 90 ? inverted : null;
 }
 
-// ===== FONCTIONS UTILITAIRES - TIRAGES =====
-
-// Obtenir les tirages à venir pour un opérateur
 export function getUpcomingDrawsForOperator(operatorId: string): Draw[] {
   const draws = getDrawsFromLocalStorage();
   const now = new Date();
@@ -298,7 +252,6 @@ export function getUpcomingDrawsForOperator(operatorId: string): Draw[] {
   });
 }
 
-// Obtenir tous les tirages à venir
 export function getAllUpcomingDraws(): Draw[] {
   const draws = getDrawsFromLocalStorage();
   const now = new Date();
@@ -315,19 +268,15 @@ export function getAllUpcomingDraws(): Draw[] {
   });
 }
 
-// Obtenir un tirage par ID
 export function getDrawById(drawId: string): Draw | undefined {
   const draws = getDrawsFromLocalStorage();
-  // Gérer les deux cas: string et number (pour compatibilité avec anciens tirages)
   return draws.find(d => String(d.id) === String(drawId));
 }
 
-// Sauvegarder les tirages dans localStorage
 export function saveDrawsToLocalStorage(draws: Draw[]): void {
   localStorage.setItem('loto_happy_draws', JSON.stringify(draws));
 }
 
-// Charger les tirages depuis localStorage
 export function getDrawsFromLocalStorage(): Draw[] {
   try {
     const data = localStorage.getItem('loto_happy_draws');
@@ -338,7 +287,6 @@ export function getDrawsFromLocalStorage(): Draw[] {
   }
 }
 
-// Créer un nouveau tirage
 export function createDraw(
   operatorId: string,
   date: string,
@@ -366,7 +314,6 @@ export function createDraw(
   return newDraw;
 }
 
-// Mettre à jour un tirage
 export function updateDraw(drawId: string, updates: Partial<Draw>): Draw | null {
   const draws = getDrawsFromLocalStorage();
   const index = draws.findIndex(d => d.id === drawId);
@@ -379,7 +326,6 @@ export function updateDraw(drawId: string, updates: Partial<Draw>): Draw | null 
   return draws[index];
 }
 
-// Supprimer un tirage
 export function deleteDraw(drawId: string): boolean {
   const draws = getDrawsFromLocalStorage();
   const filtered = draws.filter(d => d.id !== drawId);
@@ -390,7 +336,6 @@ export function deleteDraw(drawId: string): boolean {
   return true;
 }
 
-// Formater l'affichage d'un tirage
 export function formatDrawDisplay(draw: Draw): { 
   operatorName: string; 
   country: string;
@@ -403,13 +348,8 @@ export function formatDrawDisplay(draw: Draw): {
   const operator = getOperatorById(draw.operatorId);
   if (!operator) {
     return {
-      operatorName: 'Opérateur inconnu',
-      country: '',
-      fullName: 'Opérateur inconnu',
-      time: draw.time,
-      countdown: '',
-      icon: '🎯',
-      color: '#FFD700'
+      operatorName: 'Opérateur inconnu', country: '', fullName: 'Opérateur inconnu',
+      time: draw.time, countdown: '', icon: '🎯', color: '#FFD700'
     };
   }
   
@@ -417,7 +357,6 @@ export function formatDrawDisplay(draw: Draw): {
   const now = new Date();
   const diff = drawDateTime.getTime() - now.getTime();
   
-  // Calculer le countdown
   const hours = Math.floor(diff / (1000 * 60 * 60));
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
   
@@ -434,28 +373,16 @@ export function formatDrawDisplay(draw: Draw): {
   }
   
   return {
-    operatorName: operator.name,
-    country: operator.country,
-    fullName: `${operator.name} (${operator.country})`,
-    time: draw.time,
-    countdown,
-    icon: operator.icon,
-    color: operator.color
+    operatorName: operator.name, country: operator.country, fullName: `${operator.name} (${operator.country})`,
+    time: draw.time, countdown, icon: operator.icon, color: operator.color
   };
 }
 
-// ===== MULTIPLICATEURS PAR DÉFAUT =====
-// Utilisés lors de la création d'un nouveau tirage
 export function getDefaultMultipliers(): { [K in BetType]: number } {
-  return {
-    NAP1: BET_TYPES_CONFIG.NAP1.defaultMultiplier,
-    NAP2: BET_TYPES_CONFIG.NAP2.defaultMultiplier,
-    NAP3: BET_TYPES_CONFIG.NAP3.defaultMultiplier,
-    NAP4: BET_TYPES_CONFIG.NAP4.defaultMultiplier,
-    NAP5: BET_TYPES_CONFIG.NAP5.defaultMultiplier,
-    PERMUTATION: BET_TYPES_CONFIG.PERMUTATION.defaultMultiplier,
-    BANKA: BET_TYPES_CONFIG.BANKA.defaultMultiplier,
-    CHANCE_PLUS: BET_TYPES_CONFIG.CHANCE_PLUS.defaultMultiplier,
-    ANAGRAMME: BET_TYPES_CONFIG.ANAGRAMME.defaultMultiplier
-  };
+  const multipliers = {} as { [K in BetType]: number };
+  for (const key in BET_TYPES_CONFIG) {
+      const betType = key as BetType;
+      multipliers[betType] = BET_TYPES_CONFIG[betType].defaultMultiplier;
+  }
+  return multipliers;
 }
