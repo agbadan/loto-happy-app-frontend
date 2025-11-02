@@ -25,21 +25,19 @@ interface AuthResponse {
 // ===== FONCTIONS D'API =====
 
 /**
- * Connecte un utilisateur en envoyant les données en format JSON.
- * C'est la méthode finale et la plus robuste.
- * CORRECTION : Le backend attend du `x-www-form-urlencoded` pour le login, pas du JSON.
- * La fonction retournera uniquement le token, comme spécifié par le backend.
+ * Connecte un utilisateur. Le backend attend du `x-www-form-urlencoded`.
+ * En cas de succès, retourne uniquement le `access_token`.
  */
 export const loginUser = async (credentials: {
   emailOrPhone: string;
   password: string;
-}): Promise<string> => { // On retourne directement le token (string)
+}): Promise<string> => {
   
   // 1. Préparer le corps de la requête en format `x-www-form-urlencoded`
   const formData = new URLSearchParams();
   formData.append('username', credentials.emailOrPhone);
   formData.append('password', credentials.password);
-
+  
   try {
     // 2. Faire l'appel POST. Il est CRUCIAL de passer l'objet formData directement
     // et de spécifier le header 'Content-Type' pour qu'Axios envoie les données
@@ -52,7 +50,6 @@ export const loginUser = async (credentials: {
     
     // 3. On retourne uniquement le `access_token`
     return response.data.access_token;
-
   } catch (error) {
     console.error("Erreur dans authAPI.ts > loginUser:", error);
     // On propage l'erreur pour que le composant de login puisse la gérer
@@ -74,13 +71,9 @@ export const getCurrentUser = async (): Promise<User> => {
  * Inscrit un nouveau joueur.
  * (Suppose que l'inscription attend du JSON, ce qui est courant).
  */
-export const registerUser = async (userData: any): Promise<{ token: string; user: User }> => {
-  // Pour l'inscription, le backend renvoie probablement le token ET l'utilisateur pour une connexion immédiate.
-  // On définit une interface de réponse spécifique ici.
-  const response = await apiClient.post<{ token: string; user: User }>(
-    '/api/auth/register',
-    userData
-  );
+export const registerUser = async (userData: any): Promise<{ user: User; token: string }> => {
+  // L'inscription attend du JSON et renvoie l'utilisateur et un token pour une connexion immédiate.
+  const response = await apiClient.post<{ user: User; token: string }>('/api/auth/register', userData);
   return response.data; // Retourne { token, user }
 };
 
