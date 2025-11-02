@@ -13,6 +13,7 @@ export interface Operator {
   icon: string;
   country: string;
   color: string;
+  numbersPool: number; // <-- AJOUTEZ CETTE LIGNE
 }
 
 export interface Winner {
