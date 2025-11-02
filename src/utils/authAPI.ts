@@ -18,8 +18,8 @@ export interface User {
 }
 
 interface AuthResponse {
-  token: string;
-  user: User; // Le backend renvoie aussi l'objet utilisateur
+  access_token: string;
+  token_type: 'bearer';
 }
 
 // ===== FONCTIONS D'API =====
@@ -27,28 +27,34 @@ interface AuthResponse {
 /**
  * Connecte un utilisateur en envoyant les données en format JSON.
  * C'est la méthode finale et la plus robuste.
+ * CORRECTION : Le backend attend du `x-www-form-urlencoded` pour le login, pas du JSON.
+ * La fonction retournera uniquement le token, comme spécifié par le backend.
  */
 export const loginUser = async (credentials: {
   emailOrPhone: string;
   password: string;
-}): Promise<{ token: string }> => {
+}): Promise<string> => { // On retourne directement le token (string)
   
-  // 1. Préparer le corps de la requête en JSON
-  const loginData = {
-    username: credentials.emailOrPhone,
-    password: credentials.password,
-  };
+  // 1. Préparer le corps de la requête en format `x-www-form-urlencoded`
+  const formData = new URLSearchParams();
+  formData.append('username', credentials.emailOrPhone);
+  formData.append('password', credentials.password);
 
   try {
-    // 2. Faire l'appel POST. Axios envoie du JSON par défaut, pas besoin de config spéciale.
-    const response = await apiClient.post<AuthResponse>('/api/auth/login', loginData);
+    // 2. Faire l'appel POST avec les bons headers
+    const response = await apiClient.post<AuthResponse>('/api/auth/login', formData, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
     
-    // 3. On retourne le token reçu
-    return { token: response.data.token };
+    // 3. On retourne uniquement le `access_token`
+    return response.data.access_token;
 
   } catch (error) {
     console.error("Erreur dans authAPI.ts > loginUser:", error);
-    // On propage l'erreur pour que le formulaire de login puisse afficher le message d'erreur
+    // On propage l'erreur pour que le composant de login puisse la gérer
+    // (par exemple, pour afficher "Mot de passe incorrect" ou "Utilisateur non trouvé")
     throw error;
   }
 };
@@ -66,9 +72,14 @@ export const getCurrentUser = async (): Promise<User> => {
  * Inscrit un nouveau joueur.
  * (Suppose que l'inscription attend du JSON, ce qui est courant).
  */
-export const registerUser = async (userData: any): Promise<{ token: string }> => {
-  const response = await apiClient.post<AuthResponse>('/api/auth/register', userData);
-  return { token: response.data.token };
+export const registerUser = async (userData: any): Promise<{ token: string; user: User }> => {
+  // Pour l'inscription, le backend renvoie probablement le token ET l'utilisateur pour une connexion immédiate.
+  // On définit une interface de réponse spécifique ici.
+  const response = await apiClient.post<{ token: string; user: User }>(
+    '/api/auth/register',
+    userData
+  );
+  return response.data; // Retourne { token, user }
 };
 
 /**

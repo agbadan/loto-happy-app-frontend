@@ -49,11 +49,7 @@ export function RegistrationScreen({ prefilledIdentifier, onBack }: Registration
     // Le tableau de dépendances vide assure que cela ne se produit qu'une seule fois.
   }, []);
 
-
-// DANS src/components/RegistrationScreen.tsx
-// REMPLACE ta fonction handleRegister par CELLE-CI :
-
-const handleRegister = async () => {
+  const handleRegister = async () => {
   // La validation reste la même
   if (!username || username.length < 3) { toast.error("Le nom d'utilisateur doit contenir au moins 3 caractères."); return; }
   if (!email || !email.includes('@')) { toast.error("Veuillez entrer une adresse email valide."); return; }
@@ -69,28 +65,14 @@ const handleRegister = async () => {
       email,
       phoneNumber: fullPhoneNumber,
       password,
+      role: 'player', // Ajout du rôle par défaut
     });
 
     toast.success(`Compte créé ! Bienvenue ${username} ! 🎉`);
 
   } catch (err: any) {
-    // --- PARTIE DÉBOGAGE AGRESSIF ---
-    console.error("--- ERREUR D'INSCRIPTION DÉTAILLÉE ---", err);
-    
-    const errorStatus = err.response?.status;
-    const errorData = err.response?.data;
-
-    // Affiche les données de la réponse dans la console pour une analyse détaillée
-    console.log("STATUT DE L'ERREUR:", errorStatus);
-    console.log("DONNÉES DE LA RÉPONSE:", errorData);
-
-    // AFFICHE UNE ALERTE BLOQUANTE POUR NE PAS RATER LE MESSAGE
-    alert(
-      `Échec de l'inscription !\n\n` +
-      `Statut: ${errorStatus}\n\n` +
-      `Message du Backend:\n` +
-      `${JSON.stringify(errorData, null, 2)}`
-    );
+    const errorDetail = err.response?.data?.detail || "Une erreur inconnue est survenue lors de l'inscription.";
+    toast.error(errorDetail);
   }
 };
 

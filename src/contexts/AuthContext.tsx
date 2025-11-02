@@ -59,14 +59,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (credentials: { emailOrPhone: string; password: string }) => {
     try {
-      const { token } = await apiLogin(credentials);
+      const { token, user } = await apiLogin(credentials);
       saveToken(token);
-
-      // L'intercepteur dans apiClient s'occupe maintenant de mettre à jour le header.
-      // Il n'y a plus besoin de le faire manuellement ici.
-
-      // Maintenant, on peut appeler fetchUser. L'intercepteur ajoutera le nouveau token.
-      await fetchUser();
+      setUser(user);
     } catch (error) {
       // Pas besoin de supprimer le header manuellement, l'intercepteur gère tout.
       throw error;
@@ -75,10 +70,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const register = async (userData: any) => {
     try {
-      const { token } = await apiRegister(userData);
+      const { token, user } = await apiRegister(userData);
       saveToken(token);
-      // L'intercepteur s'occupe du header, comme pour le login.
-      await fetchUser();
+      setUser(user);
     } catch (error) {
       throw error;
     }
