@@ -41,7 +41,9 @@ export const loginUser = async (credentials: {
   formData.append('password', credentials.password);
 
   try {
-    // 2. Faire l'appel POST avec les bons headers
+    // 2. Faire l'appel POST. Il est CRUCIAL de passer l'objet formData directement
+    // et de spécifier le header 'Content-Type' pour qu'Axios envoie les données
+    // en format x-www-form-urlencoded et non en JSON.
     const response = await apiClient.post<AuthResponse>('/api/auth/login', formData, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
