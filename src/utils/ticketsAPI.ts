@@ -1,6 +1,6 @@
 // src/utils/ticketsAPI.ts
 
-import { apiClient } from './apiClient';
+import apiClient  from './apiClient';
 
 // Définir les types pour correspondre à la réponse du backend
 export interface TicketDraw {
