@@ -20,7 +20,7 @@ const WithdrawalCard = ({ request, onApprove, onReject }: { request: Withdrawal,
     const currentStatus = request.status as keyof typeof statusConfig;
 
     return (
-        <Card key={request.id} className={`p-6 border-l-4 border-l-${statusConfig[currentStatus]?.color || 'gray-500'}`}>
+        <Card key={request._id} className={`p-6 border-l-4 border-l-${statusConfig[currentStatus]?.color || 'gray-500'}`}>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
@@ -78,13 +78,11 @@ export function AdminFinance() {
   useEffect(() => { fetchAllData(); }, []);
 
   const handleApprove = (request: Withdrawal) => { 
-    console.log("Données du retrait sélectionné :", JSON.stringify(request, null, 2));
     setSelectedRequest(request); 
     setShowApproveDialog(true); 
   };
   
   const handleReject = (request: Withdrawal) => { 
-    console.log("Données du retrait sélectionné :", JSON.stringify(request, null, 2));
     setSelectedRequest(request); 
     setRejectionReason("");
     setShowRejectDialog(true); 
@@ -103,7 +101,7 @@ export function AdminFinance() {
     
     setIsSubmitting(true);
     try {
-      await processWithdrawalRequest(selectedRequest.id, action, rejectionReason);
+      await processWithdrawalRequest(selectedRequest._id, action, rejectionReason);
       
       toast.success(`Demande ${action === 'approve' ? 'approuvée' : 'rejetée'}.`);
       await fetchAllData();
@@ -128,7 +126,7 @@ export function AdminFinance() {
       const emptyMessages = { pending: { icon: Wallet, text: "Aucune demande de retrait en attente" }, approved: { icon: CheckCircle, text: "Aucune demande approuvée" }, rejected: { icon: XCircle, text: "Aucune demande rejetée" }};
       const EmptyIcon = emptyMessages[type].icon;
       if (requests.length === 0) { return <Card className="p-8 text-center"><EmptyIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" /><p className="text-muted-foreground">{emptyMessages[type].text}</p></Card>; }
-      return requests.map((req) => <WithdrawalCard key={req.id} request={req} onApprove={handleApprove} onReject={handleReject} />);
+      return requests.map((req) => <WithdrawalCard key={req._id} request={req} onApprove={handleApprove} onReject={handleReject} />);
   };
 
   return (

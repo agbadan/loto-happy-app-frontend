@@ -64,7 +64,7 @@ export function AdminAdministrators() {
     if (!selectedAdmin) return;
     setIsSubmitting(true);
     try {
-      await updateAdminRole(selectedAdmin.id, editRole);
+      await updateAdminRole(selectedAdmin._id, editRole);
       toast.success("Rôle de l'administrateur mis à jour.");
       await fetchAdmins();
       setEditModalOpen(false);
@@ -77,7 +77,7 @@ export function AdminAdministrators() {
     const newStatus = admin.status === 'active' ? 'suspended' : 'active';
     toast.info("Mise à jour du statut en cours...");
     try {
-      await updateAdminStatus(admin.id, newStatus);
+      await updateAdminStatus(admin._id, newStatus);
       toast.success("Statut mis à jour avec succès !");
       setEditModalOpen(false);
       await fetchAdmins();
@@ -115,7 +115,7 @@ export function AdminAdministrators() {
             <thead className="bg-muted"><tr className="border-b"><th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Utilisateur</th><th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Rôle</th><th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Statut</th><th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider">Actions</th></tr></thead>
             <tbody className="divide-y divide-border">
               {admins.map((admin) => (
-                <tr key={admin.id} className="hover:bg-accent/50">
+                <tr key={admin._id} className="hover:bg-accent/50">
                   <td className="px-4 py-4">
                     <div className="font-medium text-foreground">{admin.username}</div>
                     <div className="text-xs text-muted-foreground">{admin.email}</div>
