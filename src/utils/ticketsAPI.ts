@@ -31,7 +31,7 @@ export const getPlayerTickets = async (): Promise<Ticket[]> => {
   try {
     // --- APPEL API ---
     // Correction importante : On récupère l'objet "response" complet d'axios
-    const response = await apiClient.get<Ticket[]>('/api/tickets/me');
+    const response = await apiClient.get('/api/tickets/me');
     
     // --- LOG DE LA RÉPONSE BRUTE ---
     // On log l'objet "response" entier pour voir le statut, les headers, etc.
