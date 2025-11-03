@@ -11,38 +11,32 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Separator } from "../ui/separator";
 import { toast } from "sonner";
 import { Plus, Calendar, Trophy, Clock, Info, Loader2, Archive } from "lucide-react";
+
+// MISE À JOUR : Import des fonctions API réelles
 import { Draw, Multipliers, getAdminDrawsByStatus, createAdminDraw, publishDrawResults } from "../../utils/drawsAPI";
+import { OPERATORS_CONFIG } from "../../utils/dashboardAPI"; // On utilise la config des opérateurs de l'API publique
 
-// --- CONFIGURATIONS ---
-const OPERATORS_CONFIG = [
-    { id: 'benin-lotto', name: 'Bénin Lotto', icon: '🇧🇯', country: 'Bénin' },
-    { id: 'lotto-kadoo-togo', name: 'Lotto Kadoo', icon: '🇹🇬', country: 'Togo' },
-    { id: 'lonaci-ci', name: 'Lonaci', icon: '🇨🇮', country: 'Côte d\'Ivoire' },
-    { id: 'green-lotto-nigeria', name: 'Green Lotto', icon: '🇳🇬', country: 'Nigéria' },
-    { id: 'pmu-senegal', name: 'PMU Sénégal', icon: '🇸🇳', country: 'Sénégal' },
-];
-
+// Définition des types de pari pour le formulaire
 const BET_TYPES_CONFIG: Record<string, { name: string; label: string }> = {
-    'NAP1': { name: 'Simple Numéro', label: 'NAP1' },
-    'NAP2': { name: 'Deux Numéros', label: 'NAP2 / Two Sure' },
-    'NAP3': { name: 'Trois Numéros', label: 'NAP3' },
-    'NAP4': { name: 'Quatre Numéros', label: 'NAP4' },
-    'NAP5': { name: 'Cinq Numéros', label: 'NAP5 / Perm Nap' },
-    'PERMUTATION': { name: 'Combinaison', label: 'Permutation' },
-    'BANKA': { name: 'Numéro de Base', label: 'Against / Banka' },
-    'CHANCE_PLUS': { name: 'Position Exacte', label: 'Chance+' },
-    'ANAGRAMME': { name: 'Numéros inversés', label: 'Anagramme / WE dans WE' },
+    'NAP1': { name: 'NAP 1', label: 'NAP1' },
+    'NAP2': { name: 'NAP 2', label: 'NAP2 / Two Sure' },
+    'NAP3': { name: 'NAP 3', label: 'NAP3' },
+    'NAP4': { name: 'NAP 4', label: 'NAP4' },
+    'NAP5': { name: 'NAP 5', label: 'NAP5 / Perm Nap' },
+    'PERMUTATION': { name: 'Permutation', label: 'Permutation' },
+    'BANKA': { name: 'Banka', label: 'Against / Banka' },
+    'CHANCE_PLUS': { name: 'Chance+', label: 'Chance+' },
+    'ANAGRAMME': { name: 'Anagramme', label: 'Anagramme / WE dans WE' },
 };
 
 const getDefaultMultipliers = (): Multipliers => ({
-    'NAP1': 10, 'NAP2': 500, 'NAP3': 2500, 'NAP4': 10000, 'NAP5': 100000,
-    'PERMUTATION': 500, 'BANKA': 500, 'CHANCE_PLUS': 90, 'ANAGRAMME': 10,
+    NAP1: 240, NAP2: 500, NAP3: 2500, NAP4: 10000, NAP5: 50000,
+    PERMUTATION: 240, BANKA: 400, CHANCE_PLUS: 90, ANAGRAMME: 10,
 });
 
-// MISE À JOUR : Ajout du statut 'pending'
-type AdminDrawStatus = 'upcoming' | 'pending' | 'completed' | 'archived' | 'cancelled';
+// NOUVEAU : Le type de statut est aligné avec le backend
+type AdminDrawStatus = 'upcoming' | 'pending' | 'archived' | 'cancelled';
 
-// --- COMPOSANT PRINCIPAL ---
 export function AdminGames() {
     const [activeTab, setActiveTab] = useState<AdminDrawStatus>('upcoming');
     const [isLoading, setIsLoading] = useState(true);
@@ -52,6 +46,7 @@ export function AdminGames() {
     const [isResultsModalOpen, setResultsModalOpen] = useState(false);
     const [selectedDraw, setSelectedDraw] = useState<Draw | null>(null);
 
+    // NOUVEAU : Fonction de chargement qui utilise l'API
     const loadDraws = async (status: AdminDrawStatus) => {
         setIsLoading(true);
         try {
@@ -65,6 +60,7 @@ export function AdminGames() {
         }
     };
 
+    // NOUVEAU : L'effet se déclenche au changement d'onglet
     useEffect(() => {
         loadDraws(activeTab);
     }, [activeTab]);
@@ -84,8 +80,7 @@ export function AdminGames() {
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AdminDrawStatus)}>
                 <TabsList className="grid w-full max-w-lg grid-cols-3">
                     <TabsTrigger value="upcoming">À Venir</TabsTrigger>
-                    {/* MISE À JOUR : L'onglet "Résultats" appelle maintenant le statut 'pending' */}
-                    <TabsTrigger value="pending">Résultats</TabsTrigger>
+                    <TabsTrigger value="pending">Saisie Résultats</TabsTrigger>
                     <TabsTrigger value="archived">Archives</TabsTrigger>
                 </TabsList>
 
@@ -108,6 +103,7 @@ export function AdminGames() {
                 isOpen={isCreateModalOpen} 
                 onClose={() => setCreateModalOpen(false)} 
                 onSuccess={() => {
+                    // Si on est déjà sur l'onglet 'upcoming', on recharge. Sinon, on y va.
                     if (activeTab === 'upcoming') {
                         loadDraws('upcoming');
                     } else {
@@ -120,18 +116,20 @@ export function AdminGames() {
                     isOpen={isResultsModalOpen}
                     onClose={() => setResultsModalOpen(false)}
                     draw={selectedDraw}
-                    onSuccess={() => loadDraws(activeTab)}
+                    onSuccess={() => {
+                        // Après saisie, on va voir le résultat dans les archives
+                        setActiveTab('archived');
+                    }}
                 />
             )}
         </div>
     );
 }
 
-// --- SOUS-COMPOSANTS ---
+// --- SOUS-COMPOSANTS (Légèrement modifiés) ---
 
 function DrawCard({ draw, onEnterResults }: { draw: Draw; onEnterResults: () => void; }) {
-    const operator = OPERATORS_CONFIG.find(op => op.id === draw.operatorId);
-    
+    // La date est maintenant un string ISO, on la parse
     const drawDate = new Date(draw.drawDate);
     const formattedDate = !isNaN(drawDate.getTime()) ? drawDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : "Date invalide";
     const formattedTime = !isNaN(drawDate.getTime()) ? drawDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : "";
@@ -140,7 +138,7 @@ function DrawCard({ draw, onEnterResults }: { draw: Draw; onEnterResults: () => 
       <Card className="p-4 md:p-6">
         <div className="flex justify-between items-start flex-wrap gap-4">
             <div className="flex items-start gap-4">
-                <span className="text-3xl pt-1">{operator?.icon || '🎲'}</span>
+                <span className="text-3xl pt-1">🎲</span> {/* Icône statique car non fournie par l'API admin/draws */}
                 <div>
                     <h3 className="font-bold text-lg">{draw.operatorName || 'Inconnu'}</h3>
                     <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
@@ -154,7 +152,7 @@ function DrawCard({ draw, onEnterResults }: { draw: Draw; onEnterResults: () => 
                     }
                 </div>
             </div>
-            {/* MISE À JOUR : Le bouton s'affiche maintenant pour les tirages en statut 'pending' */}
+            {/* Le bouton s'affiche pour les tirages en statut 'pending' */}
             {draw.status === 'pending' && (
                 <Button size="sm" onClick={onEnterResults} className="bg-orange-500 hover:bg-orange-600 text-white">
                     Saisir les Résultats
@@ -166,11 +164,9 @@ function DrawCard({ draw, onEnterResults }: { draw: Draw; onEnterResults: () => 
 }
 
 function EmptyState({ status, onCreateClick }: { status: AdminDrawStatus; onCreateClick: () => void; }) {
-    // MISE À JOUR : Ajout d'un message pour l'état 'pending'
-    const messages = {
+    const messages: Record<AdminDrawStatus, {icon: React.ElementType, text: string}> = {
         upcoming: { icon: Calendar, text: "Aucun tirage à venir" },
         pending: { icon: Trophy, text: "Aucun tirage en attente de résultat" },
-        completed: { icon: Trophy, text: "Aucun résultat à afficher" },
         archived: { icon: Archive, text: "Aucune archive trouvée" },
         cancelled: { icon: Archive, text: "Aucun tirage annulé" }
     };
@@ -189,6 +185,22 @@ function CreateDrawModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onCl
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [newDraw, setNewDraw] = useState({ operatorId: "", date: "", time: "" });
     const [multipliers, setMultipliers] = useState<Multipliers>(getDefaultMultipliers());
+    const [operators, setOperators] = useState<{id: string, name: string, icon: string, country: string}[]>([]);
+
+    useEffect(() => {
+        const fetchOperators = async () => {
+            try {
+                // On utilise la liste d'opérateurs de l'API publique
+                const ops = await OPERATORS_CONFIG;
+                setOperators(ops);
+            } catch (error) {
+                toast.error("Impossible de charger les opérateurs.");
+            }
+        };
+        if (isOpen) {
+            fetchOperators();
+        }
+    }, [isOpen]);
 
     const handleCreate = async () => {
         if (!newDraw.operatorId || !newDraw.date || !newDraw.time) {
@@ -196,6 +208,7 @@ function CreateDrawModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onCl
         }
         setIsSubmitting(true);
         try {
+            // NOUVEAU : Appel à l'API réelle
             await createAdminDraw({ ...newDraw, multipliers });
             toast.success("Tirage créé avec succès !");
             onSuccess();
@@ -219,7 +232,7 @@ function CreateDrawModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onCl
                         <Label>Opérateur *</Label>
                         <Select value={newDraw.operatorId} onValueChange={(v) => setNewDraw({...newDraw, operatorId: v})}>
                             <SelectTrigger><SelectValue placeholder="Choisir un opérateur..." /></SelectTrigger>
-                            <SelectContent>{OPERATORS_CONFIG.map(op => <SelectItem key={op.id} value={op.id}><div className="flex items-center gap-2"><span>{op.icon}</span><span>{op.name} ({op.country})</span></div></SelectItem>)}</SelectContent>
+                            <SelectContent>{operators.map(op => <SelectItem key={op.id} value={op.id}><div className="flex items-center gap-2"><span>{op.icon}</span><span>{op.name} ({op.country})</span></div></SelectItem>)}</SelectContent>
                         </Select>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -252,11 +265,12 @@ function ResultsModal({ isOpen, onClose, onSuccess, draw }: { isOpen: boolean; o
 
     const handleSave = async () => {
         const numbersArray = winningNumbers.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
-        if (numbersArray.length === 0) {
-            return toast.error("Veuillez saisir des numéros valides.");
+        if (numbersArray.length !== 5) { // Votre backend attend 5 numéros
+            return toast.error("Veuillez saisir exactement 5 numéros valides.");
         }
         setIsSubmitting(true);
         try {
+            // NOUVEAU : Appel à l'API réelle
             await publishDrawResults(draw.id, numbersArray);
             toast.success("Résultats publiés et gains distribués !");
             onSuccess();
@@ -273,7 +287,7 @@ function ResultsModal({ isOpen, onClose, onSuccess, draw }: { isOpen: boolean; o
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Saisir les Résultats pour {draw.operatorName}</DialogTitle>
-                    <DialogDescription>Entrez les numéros gagnants séparés par une virgule.</DialogDescription>
+                    <DialogDescription>Entrez les 5 numéros gagnants séparés par une virgule.</DialogDescription>
                 </DialogHeader>
                 <div className="py-4">
                     <Label htmlFor="winning-numbers">Numéros Gagnants *</Label>
