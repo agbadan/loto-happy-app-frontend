@@ -204,63 +204,97 @@ export function ProfileScreen({ onBack, onNavigateToProfile }: ProfileScreenProp
             )}
           </TabsContent>
 
-          <TabsContent value="settings" className="space-y-6">
-            <Card className="p-6">
-                <h3 className="mb-4 flex items-center gap-2 font-semibold text-lg"><User className="h-5 w-5" />Informations du Compte</h3>
-                <div className="space-y-4">
-                    <div><Label className="text-xs text-muted-foreground">Adresse email</Label><p className="font-medium">{user.email}</p></div>
-                    <div><Label className="text-xs text-muted-foreground">Numéro de téléphone</Label><p className="font-medium">{user.phoneNumber}</p></div>
-                </div>
-            </Card>
+{/* DANS src/components/ProfileScreen.tsx, REMPLACEZ LE TabsContent "settings" */}
 
-            <Card className="p-6">
-                <h3 className="mb-4 flex items-center gap-2 font-semibold text-lg"><Bell className="h-5 w-5" />Notifications</h3>
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <div><Label htmlFor="push-notifications">Notifications push</Label><p className="text-sm text-muted-foreground">Recevez des alertes pour les tirages et gains</p></div>
-                        <Switch id="push-notifications" defaultChecked />
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <div><Label htmlFor="email-notifications">Notifications email</Label><p className="text-sm text-muted-foreground">Recevez des résumés hebdomadaires</p></div>
-                        <Switch id="email-notifications" />
-                    </div>
-                </div>
-            </Card>
+<TabsContent value="settings" className="space-y-6">
+    <Card className="p-6">
+        <h3 className="mb-4 flex items-center gap-2 font-semibold text-lg"><User className="h-5 w-5" />Informations du Compte</h3>
+        <div className="space-y-4">
+            <div><Label className="text-xs text-muted-foreground">Adresse email</Label><p className="font-medium">{user.email}</p></div>
+            <div><Label className="text-xs text-muted-foreground">Numéro de téléphone</Label><p className="font-medium">{user.phoneNumber}</p></div>
+        </div>
+    </Card>
 
-            <Card className="p-6">
-                <h3 className="mb-4 flex items-center gap-2 font-semibold text-lg"><Lock className="h-5 w-5" />Sécurité</h3>
-                <div className="space-y-2">
-                    <Button variant="outline" className="w-full justify-start text-left h-auto py-3" onClick={() => setPasswordModalOpen(true)}>Changer le mot de passe</Button>
-                    <Button variant="outline" className="w-full justify-start text-left h-auto py-3" disabled>Activer l'authentification à deux facteurs</Button>
-                    <Button variant="outline" className="w-full justify-start text-left h-auto py-3" disabled>Gérer les appareils connectés</Button>
-                </div>
-            </Card>
+    <Card className="p-6">
+        <h3 className="mb-4 flex items-center gap-2 font-semibold text-lg"><Bell className="h-5 w-5" />Notifications</h3>
+        <div className="space-y-4">
+            <div className="flex items-center justify-between">
+                <div><Label htmlFor="push-notifications">Notifications push</Label><p className="text-sm text-muted-foreground">Recevez des alertes pour les tirages et gains</p></div>
+                <Switch id="push-notifications" defaultChecked />
+            </div>
+            <div className="flex items-center justify-between">
+                <div><Label htmlFor="email-notifications">Notifications email</Label><p className="text-sm text-muted-foreground">Recevez des résumés hebdomadaires</p></div>
+                <Switch id="email-notifications" />
+            </div>
+        </div>
+    </Card>
 
-            <Card className="p-6">
-                <h3 className="mb-4 flex items-center gap-2 font-semibold text-lg"><Palette className="h-5 w-5" />Apparence</h3>
-                <p className="text-sm text-muted-foreground mb-4">Personnalisez l'apparence de l'application.</p>
-                <div className="grid grid-cols-3 gap-4">
-                    <div className={`flex flex-col items-center justify-center gap-2 p-4 rounded-lg cursor-pointer border-2 ${theme === 'light' ? 'border-primary' : 'border-transparent hover:border-border'}`} onClick={() => setTheme('light')}>
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted"><Sun className="h-6 w-6 text-yellow-500" /></div>
-                        <p className="font-semibold">Clair</p>
-                    </div>
-                    <div className={`flex flex-col items-center justify-center gap-2 p-4 rounded-lg cursor-pointer border-2 ${theme === 'dark' ? 'border-primary' : 'border-transparent hover:border-border'}`} onClick={() => setTheme('dark')}>
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted"><Moon className="h-6 w-6 text-purple-400" /></div>
-                        <p className="font-semibold">Sombre</p>
-                    </div>
-                    <div className={`flex flex-col items-center justify-center gap-2 p-4 rounded-lg cursor-pointer border-2 ${theme === 'auto' ? 'border-primary' : 'border-transparent hover:border-border'}`} onClick={() => setTheme('auto')}>
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted"><Monitor className="h-6 w-6 text-blue-400" /></div>
-                        <p className="font-semibold">Automatique</p>
-                    </div>
-                </div>
-            </Card>
+    <Card className="p-6">
+        <h3 className="mb-4 flex items-center gap-2 font-semibold text-lg"><Lock className="h-5 w-5" />Sécurité</h3>
+        <div className="space-y-2">
+            <Button variant="outline" className="w-full justify-start text-left h-auto py-3" onClick={() => setPasswordModalOpen(true)}>Changer le mot de passe</Button>
+            <Button variant="outline" className="w-full justify-start text-left h-auto py-3" disabled>Activer l'authentification à deux facteurs</Button>
+            <Button variant="outline" className="w-full justify-start text-left h-auto py-3" disabled>Gérer les appareils connectés</Button>
+        </div>
+    </Card>
 
-            <Card className="p-6">
-                <h3 className="mb-4 flex items-center gap-2 font-semibold text-lg"><LogOut className="h-5 w-5" />Déconnexion</h3>
-                <p className="text-sm text-muted-foreground mb-4">Vous serez déconnecté de votre session actuelle.</p>
-                <Button variant="destructive" className="w-full" onClick={handleLogout}>Se déconnecter</Button>
-            </Card>
-          </TabsContent>
+    {/* --- BLOC APPARENCE ENTIÈREMENT RECONSTRUIT --- */}
+    <Card className="p-6">
+        <h3 className="mb-2 flex items-center gap-2 font-semibold text-lg"><Palette className="h-5 w-5" />Apparence</h3>
+        <p className="text-sm text-muted-foreground mb-4">Choisissez votre thème</p>
+        <p className="text-sm text-muted-foreground mb-6">Personnalisez l'apparence de l'application selon vos préférences</p>
+        <div className="grid grid-cols-3 gap-4">
+            {/* Thème Clair */}
+            <div 
+                className={`relative flex flex-col items-center justify-center gap-2 p-4 rounded-lg cursor-pointer border-2 transition-all ${theme === 'light' ? 'border-primary' : 'border-card hover:border-border'}`}
+                onClick={() => setTheme('light')}
+            >
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted mb-2">
+                    <Sun className="h-6 w-6 text-yellow-500" />
+                </div>
+                <p className="font-semibold text-sm">Clair</p>
+                <p className="text-xs text-muted-foreground text-center">Lumineux et accueillant</p>
+                {theme === 'light' && <div className="absolute bottom-2 h-1 w-1/2 rounded-full bg-primary" />}
+            </div>
+            {/* Thème Sombre */}
+            <div 
+                className={`relative flex flex-col items-center justify-center gap-2 p-4 rounded-lg cursor-pointer border-2 transition-all ${theme === 'dark' ? 'border-primary' : 'border-card hover:border-border'}`}
+                onClick={() => setTheme('dark')}
+            >
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted mb-2">
+                    <Moon className="h-6 w-6 text-purple-400" />
+                </div>
+                <p className="font-semibold text-sm">Sombre</p>
+                <p className="text-xs text-muted-foreground text-center">Confort pour vos yeux</p>
+                {theme === 'dark' && <div className="absolute bottom-2 h-1 w-1/2 rounded-full bg-primary" />}
+            </div>
+            {/* Thème Auto */}
+            <div 
+                className={`relative flex flex-col items-center justify-center gap-2 p-4 rounded-lg cursor-pointer border-2 transition-all ${theme === 'auto' ? 'border-primary' : 'border-card hover:border-border'}`}
+                onClick={() => setTheme('auto')}
+            >
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted mb-2">
+                    <Monitor className="h-6 w-6 text-blue-400" />
+                </div>
+                <p className="font-semibold text-sm">Automatique</p>
+                <p className="text-xs text-muted-foreground text-center">Suit votre système</p>
+                {theme === 'auto' && <div className="absolute bottom-2 h-1 w-1/2 rounded-full bg-primary" />}
+            </div>
+        </div>
+        <div className="mt-6 flex items-center gap-2 rounded-lg bg-muted p-3">
+            <Info className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <p className="text-xs text-muted-foreground">
+                Conseil : Le thème automatique s'adapte aux préférences de votre appareil.
+            </p>
+        </div>
+    </Card>
+
+    <Card className="p-6">
+        <h3 className="mb-4 flex items-center gap-2 font-semibold text-lg"><LogOut className="h-5 w-5" />Déconnexion</h3>
+        <p className="text-sm text-muted-foreground mb-4">Vous serez déconnecté de votre session actuelle.</p>
+        <Button variant="destructive" className="w-full" onClick={handleLogout}>Se déconnecter</Button>
+    </Card>
+</TabsContent>
         </Tabs>
       </main>
       <Footer />
