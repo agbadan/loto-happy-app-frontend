@@ -353,10 +353,15 @@ function ResultsModal({ isOpen, onClose, onSuccess, draw }: { isOpen: boolean; o
     );
 }
 
-// --- MODIFICATION 2 : La logique d'export est maintenant simple et non asynchrone ---
+// Dans src/components/admin/AdminGames.tsx
+
+// ... (gardez tous les imports et le reste du fichier)
+
+// --- REMPLACEZ L'ANCIEN COMPOSANT DrawReportView PAR CELUI-CI ---
 function DrawReportView({ draw, onBack }: { draw: Draw; onBack: () => void; }) {
     const [report, setReport] = useState<DrawReport | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isExporting, setIsExporting] = useState(false);
 
     useEffect(() => {
         const fetchReport = async () => {
@@ -374,50 +379,55 @@ function DrawReportView({ draw, onBack }: { draw: Draw; onBack: () => void; }) {
     }, [draw.id]);
 
     const handleExportWinnersPDF = () => {
-        if (!report) return;
+        if (!report || isExporting) return;
         const winners = report.tickets.filter(t => t.status === 'won');
         if (winners.length === 0) {
             toast.info("Il n'y a aucun gagnant à exporter.");
             return;
         }
-
-        const doc = new jsPDF();
-        doc.setFontSize(18);
-        doc.text(`Rapport des Gagnants - ${draw.operatorName}`, 14, 22);
-        doc.setFontSize(11);
-        doc.setTextColor(100);
-        doc.text(`Tirage du ${new Date(draw.drawDate).toLocaleDateString('fr-FR')}`, 14, 30);
-        
-        const tableColumn = ["Utilisateur", "Type Pari", "Numéros", "Mise (F)", "Gain (F)"];
-        const tableRows: (string | number)[][] = winners.map(ticket => [
-            ticket.username, ticket.betType, ticket.numbers,
-            ticket.betAmount.toLocaleString('fr-FR'), (ticket.winAmount ?? 0).toLocaleString('fr-FR')
-        ]);
-
-        autoTable(doc, { head: [tableColumn], body: tableRows, startY: 40 });
-        
-        doc.save(`gagnants_${draw.operatorName}_${new Date(draw.drawDate).toLocaleDateString('fr-FR')}.pdf`);
-        toast.success("Export PDF des gagnants réussi !");
+        setIsExporting(true);
+        toast.info("Préparation de l'export PDF...");
+        try {
+            const doc = new jsPDF();
+            doc.setFontSize(18);
+            doc.text(`Rapport des Gagnants - ${draw.operatorName}`, 14, 22);
+            doc.setFontSize(11);
+            doc.setTextColor(100);
+            doc.text(`Tirage du ${new Date(draw.drawDate).toLocaleDateString('fr-FR')}`, 14, 30);
+            
+            const tableColumn = ["Utilisateur", "Type Pari", "Numéros", "Mise (F)", "Gain (F)"];
+            const tableRows = winners.map(ticket => [
+                ticket.username, ticket.betType, ticket.numbers,
+                ticket.betAmount.toLocaleString('fr-FR'), (ticket.winAmount ?? 0).toLocaleString('fr-FR')
+            ]);
+            autoTable(doc, { head: [tableColumn], body: tableRows, startY: 40 });
+            doc.save(`gagnants_${draw.operatorName}_${new Date(draw.drawDate).toLocaleDateString('fr-FR')}.pdf`);
+            toast.success("Export PDF des gagnants réussi !");
+        } catch(e) { toast.error("Erreur lors de l'export PDF."); }
+        finally { setIsExporting(false); }
     };
 
     const handleExportAllParticipantsExcel = () => {
-        if (!report) return;
+        if (!report || isExporting) return;
         if (report.tickets.length === 0) {
             toast.info("Il n'y a aucun participant à exporter.");
             return;
         }
-
-        const dataForSheet = report.tickets.map(ticket => ({
-            "Utilisateur": ticket.username, "Type de Pari": ticket.betType,
-            "Numéros Joués": ticket.numbers, "Mise (F CFA)": ticket.betAmount,
-            "Statut": ticket.status, "Gain (F CFA)": ticket.winAmount ?? 0,
-        }));
-
-        const ws = XLSX.utils.json_to_sheet(dataForSheet);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Participants");
-        XLSX.writeFile(wb, `participants_${draw.operatorName}_${new Date(draw.drawDate).toLocaleDateString('fr-FR')}.xlsx`);
-        toast.success("Export Excel des participants réussi !");
+        setIsExporting(true);
+        toast.info("Préparation de l'export Excel...");
+        try {
+            const dataForSheet = report.tickets.map(ticket => ({
+                "Utilisateur": ticket.username, "Type de Pari": ticket.betType,
+                "Numéros Joués": ticket.numbers, "Mise (F CFA)": ticket.betAmount,
+                "Statut": ticket.status, "Gain (F CFA)": ticket.winAmount ?? 0,
+            }));
+            const ws = XLSX.utils.json_to_sheet(dataForSheet);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Participants");
+            XLSX.writeFile(wb, `participants_${draw.operatorName}_${new Date(draw.drawDate).toLocaleDateString('fr-FR')}.xlsx`);
+            toast.success("Export Excel des participants réussi !");
+        } catch(e) { toast.error("Erreur lors de l'export Excel."); }
+        finally { setIsExporting(false); }
     };
 
     if (isLoading) {
@@ -433,7 +443,11 @@ function DrawReportView({ draw, onBack }: { draw: Draw; onBack: () => void; }) {
         );
     }
     
-    const { stats } = report;
+    // --- LA CORRECTION EST ICI ---
+    // On définit `stats` et `tickets` une seule fois.
+    const { stats, tickets } = report;
+    // On dérive `winners` de `tickets`.
+    const winners = tickets.filter(t => t.status === 'won');
 
     return (
         <div className="p-4 md:p-6 lg:p-8 space-y-6">
@@ -445,8 +459,12 @@ function DrawReportView({ draw, onBack }: { draw: Draw; onBack: () => void; }) {
                         <p className="text-muted-foreground">{draw.operatorName} - {new Date(draw.drawDate).toLocaleDateString('fr-FR')}</p>
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={handleExportWinnersPDF}>Exporter Gagnants (PDF)</Button>
-                        <Button variant="outline" size="sm" onClick={handleExportAllParticipantsExcel}>Exporter Participants (Excel)</Button>
+                        <Button variant="outline" size="sm" onClick={handleExportWinnersPDF} disabled={isExporting}>
+                           {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null} Exporter Gagnants (PDF)
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={handleExportAllParticipantsExcel} disabled={isExporting}>
+                           {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null} Exporter Participants (Excel)
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -463,7 +481,16 @@ function DrawReportView({ draw, onBack }: { draw: Draw; onBack: () => void; }) {
                 {winners.length === 0 ? (
                     <div className="p-8 text-center text-muted-foreground">Aucun gagnant pour ce tirage</div>
                 ) : (
-                    <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Utilisateur</TableHead><TableHead>Pari</TableHead><TableHead>Numéros</TableHead><TableHead>Mise</TableHead><TableHead className="text-right">Gain</TableHead></TableRow></TableHeader><TableBody>{winners.map(t => (<TableRow key={t.id}><TableCell>{t.username}</TableCell><TableCell>{t.betType}</TableCell><TableCell>{t.numbers}</TableCell><TableCell>{t.betAmount.toLocaleString('fr-FR')} F</TableCell><TableCell className="text-right text-green-500 font-bold">{t.winAmount?.toLocaleString('fr-FR')} F</TableCell></TableRow>))}</TableBody></Table></div>
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader><TableRow><TableHead>Utilisateur</TableHead><TableHead>Pari</TableHead><TableHead>Numéros</TableHead><TableHead>Mise</TableHead><TableHead className="text-right">Gain</TableHead></TableRow></TableHeader>
+                            <TableBody>
+                                {winners.map(t => (
+                                    <TableRow key={t.id}><TableCell>{t.username}</TableCell><TableCell>{t.betType}</TableCell><TableCell>{t.numbers}</TableCell><TableCell>{t.betAmount.toLocaleString('fr-FR')} F</TableCell><TableCell className="text-right text-green-500 font-bold">{t.winAmount?.toLocaleString('fr-FR')} F</TableCell></TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
                 )}
             </Card>
 
@@ -472,7 +499,16 @@ function DrawReportView({ draw, onBack }: { draw: Draw; onBack: () => void; }) {
                 {tickets.length === 0 ? (
                     <div className="p-8 text-center text-muted-foreground">Aucun participant pour ce tirage</div>
                 ) : (
-                    <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Utilisateur</TableHead><TableHead>Pari</TableHead><TableHead>Numéros</TableHead><TableHead>Mise</TableHead><TableHead>Statut</TableHead></TableRow></TableHeader><TableBody>{tickets.map(t => (<TableRow key={t.id}><TableCell>{t.username}</TableCell><TableCell>{t.betType}</TableCell><TableCell>{t.numbers}</TableCell><TableCell>{t.betAmount.toLocaleString('fr-FR')} F</TableCell><TableCell><Badge variant={t.status === 'won' ? 'default' : 'outline'} className={t.status === 'won' ? 'bg-green-500/20 text-green-500' : ''}>{t.status === 'won' ? 'Gagnant' : 'Perdant'}</Badge></TableCell></TableRow>))}</TableBody></Table></div>
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader><TableRow><TableHead>Utilisateur</TableHead><TableHead>Pari</TableHead><TableHead>Numéros</TableHead><TableHead>Mise</TableHead><TableHead>Statut</TableHead></TableRow></TableHeader>
+                            <TableBody>
+                                {tickets.map(t => (
+                                    <TableRow key={t.id}><TableCell>{t.username}</TableCell><TableCell>{t.betType}</TableCell><TableCell>{t.numbers}</TableCell><TableCell>{t.betAmount.toLocaleString('fr-FR')} F</TableCell><TableCell><Badge variant={t.status === 'won' ? 'default' : 'outline'} className={t.status === 'won' ? 'bg-green-500/20 text-green-500' : ''}>{t.status === 'won' ? 'Gagnant' : 'Perdant'}</Badge></TableCell></TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
                 )}
             </Card>
         </div>
