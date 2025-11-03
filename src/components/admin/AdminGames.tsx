@@ -131,28 +131,51 @@ function DrawCard({ draw, onEnterResults, onViewReport }: { draw: Draw; onEnterR
       <Card className="p-4 md:p-6">
         <div className="flex justify-between items-start flex-wrap gap-4">
             <div className="flex items-start gap-4">
-                <span className="text-3xl pt-1">{draw.operatorIcon || '🎲'}</span>
+                {/* --- CORRECTION 1 : Affichage du préfixe pays au lieu de l'icône --- */}
+                <span className="text-xl font-bold text-muted-foreground pt-1 w-8">
+                  {draw.operatorIcon.slice(0, 2)}
+                </span>
                 <div>
                     <h3 className="font-bold text-lg">{draw.operatorName}</h3>
                     <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /><span>{formattedDate}</span></div>
                         <div className="flex items-center gap-1.5"><Clock className="h-4 w-4" /><span>{formattedTime}</span></div>
                     </div>
-                    {draw.status === 'upcoming' && <p className="text-xs text-muted-foreground mt-2">{draw.participants} participant(s)</p>}
-                    {draw.winningNumbers && draw.winningNumbers.length > 0 && 
+                    
+                    {/* --- CORRECTION 2 : Logique d'affichage pour les tirages À VENIR --- */}
+                    {draw.status === 'upcoming' && (
+                        <p className="text-xs text-muted-foreground mt-2">{draw.participants} participant(s)</p>
+                    )}
+
+                    {/* --- CORRECTION 3 : Logique d'affichage robuste pour les tirages ARCHIVÉS --- */}
+                    {draw.status === 'archived' && (
                         <div className="mt-3 space-y-2">
-                            <p className="flex items-center gap-1.5 text-sm font-semibold text-yellow-400"><Trophy className="h-4 w-4" /> Numéros: {draw.winningNumbers.join(', ')}</p>
-                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-                                <span>{draw.participants} participants</span>
-                                <span className="text-green-500">{draw.winners} gagnant(s)</span>
-                                <span>Profit: <span className={(draw.profit ?? 0) >= 0 ? 'text-green-500' : 'text-red-500'}>{draw.profit?.toLocaleString('fr-FR')} F</span></span>
+                            <p className="flex items-center gap-1.5 text-sm font-semibold text-yellow-400">
+                                <Trophy className="h-4 w-4" /> Numéros: {draw.winningNumbers?.join(', ') || 'N/A'}
+                            </p>
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                                <span>{draw.participants ?? 0} participants</span>
+                                <span className="text-green-500">{draw.winners ?? 0} gagnant(s)</span>
+                                <span>Profit: 
+                                  <span className={(draw.profit ?? 0) >= 0 ? 'text-green-500' : 'text-red-500'}>
+                                      {' '}{(draw.profit ?? 0).toLocaleString('fr-FR')} F
+                                  </span>
+                                </span>
                             </div>
                         </div>
-                    }
+                    )}
                 </div>
             </div>
-            {draw.status === 'pending' && <Button size="sm" onClick={onEnterResults} className="bg-orange-500 hover:bg-orange-600 text-white">Saisir les Résultats</Button>}
-            {draw.status === 'archived' && <Button size="sm" variant="outline" onClick={onViewReport}><Eye className="h-4 w-4 mr-2" />Voir Rapport</Button>}
+            {draw.status === 'pending' && (
+              <Button size="sm" onClick={onEnterResults} className="bg-orange-500 hover:bg-orange-600 text-white">
+                  Saisir les Résultats
+              </Button>
+            )}
+            {draw.status === 'archived' && (
+              <Button size="sm" variant="outline" onClick={onViewReport}>
+                  <Eye className="h-4 w-4 mr-2" />Voir Rapport
+              </Button>
+            )}
         </div>
       </Card>
     );
