@@ -66,15 +66,20 @@ export function AdminGames() {
 
     return (
         <div className="p-4 md:p-8 space-y-8">
-            <header className="flex justify-between items-start flex-wrap gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold">Gestion des Tirages</h1>
-                    <p className="text-muted-foreground mt-1">Créez des tirages, saisissez les résultats et consultez les archives</p>
-                </div>
-                <Button onClick={() => setCreateModalOpen(true)} className="bg-yellow-400 text-black hover:bg-yellow-500">
-                    <Plus className="mr-2 h-4 w-4" />Nouveau Tirage
-                </Button>
-            </header>
+{/* CODE CORRIGÉ À COLLER */}
+<header className="flex justify-between items-start flex-wrap gap-4">
+    <div>
+        <h1 className="text-3xl font-bold">Gestion des Tirages</h1>
+        <p className="text-muted-foreground mt-1">Créez des tirages, saisissez les résultats et consultez les archives</p>
+    </div>
+    {/* --- CORRECTION APPLIQUÉE ICI --- */}
+    <Button 
+        onClick={() => setCreateModalOpen(true)} 
+        className="bg-[#FFD700] text-[#121212] hover:bg-[#FFD700]/90"
+    >
+        <Plus className="mr-2 h-4 w-4" />Nouveau Tirage
+    </Button>
+</header>
             
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AdminDrawStatus)}>
                 <TabsList className="grid w-full max-w-lg grid-cols-3 bg-muted">
