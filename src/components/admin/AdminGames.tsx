@@ -17,7 +17,11 @@ import { Draw, Multipliers, getAdminDrawsByStatus, createAdminDraw, publishDrawR
 import { OPERATORS_CONFIG as LOCAL_OPERATORS_CONFIG } from "../../utils/games";
 
 
-
+// --- MODIFICATION 1 : IMPORTS CORRIGÉS ---
+// On importe les types et les fonctions de manière compatible
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 const BET_TYPES_CONFIG: Record<string, { name: string; label: string }> = {
     'NAP1': { name: 'NAP 1', label: 'NAP1' }, 'NAP2': { name: 'NAP 2', label: 'NAP2 / Two Sure' },
@@ -349,11 +353,10 @@ function ResultsModal({ isOpen, onClose, onSuccess, draw }: { isOpen: boolean; o
     );
 }
 
-// --- REMPLACEZ L'ANCIEN COMPOSANT DrawReportView PAR CETTE NOUVELLE VERSION ---
+// --- MODIFICATION 2 : La logique d'export est maintenant simple et non asynchrone ---
 function DrawReportView({ draw, onBack }: { draw: Draw; onBack: () => void; }) {
     const [report, setReport] = useState<DrawReport | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [isExporting, setIsExporting] = useState(false); // Ajout d'un état pour le chargement de l'export
 
     useEffect(() => {
         const fetchReport = async () => {
@@ -370,94 +373,51 @@ function DrawReportView({ draw, onBack }: { draw: Draw; onBack: () => void; }) {
         fetchReport();
     }, [draw.id]);
 
-    // --- MODIFICATION 2 : La logique d'export est maintenant asynchrone ---
-    const handleExportWinnersPDF = async () => {
-        if (!report || isExporting) return;
-        
+    const handleExportWinnersPDF = () => {
+        if (!report) return;
         const winners = report.tickets.filter(t => t.status === 'won');
         if (winners.length === 0) {
             toast.info("Il n'y a aucun gagnant à exporter.");
             return;
         }
 
-        setIsExporting(true);
-        toast.info("Préparation de l'export PDF...");
+        const doc = new jsPDF();
+        doc.setFontSize(18);
+        doc.text(`Rapport des Gagnants - ${draw.operatorName}`, 14, 22);
+        doc.setFontSize(11);
+        doc.setTextColor(100);
+        doc.text(`Tirage du ${new Date(draw.drawDate).toLocaleDateString('fr-FR')}`, 14, 30);
+        
+        const tableColumn = ["Utilisateur", "Type Pari", "Numéros", "Mise (F)", "Gain (F)"];
+        const tableRows: (string | number)[][] = winners.map(ticket => [
+            ticket.username, ticket.betType, ticket.numbers,
+            ticket.betAmount.toLocaleString('fr-FR'), (ticket.winAmount ?? 0).toLocaleString('fr-FR')
+        ]);
 
-        try {
-            // Importation dynamique
-            const { default: jsPDF } = await import('jspdf');
-            await import('jspdf-autotable');
-
-            const doc = new jsPDF();
-            
-            doc.setFontSize(18);
-            doc.text(`Rapport des Gagnants - ${draw.operatorName}`, 14, 22);
-            doc.setFontSize(11);
-            doc.setTextColor(100);
-            doc.text(`Tirage du ${new Date(draw.drawDate).toLocaleDateString('fr-FR')}`, 14, 30);
-            
-            const tableColumn = ["Utilisateur", "Type Pari", "Numéros", "Mise (F)", "Gain (F)"];
-            const tableRows: (string | number)[][] = winners.map(ticket => [
-                ticket.username,
-                ticket.betType,
-                ticket.numbers,
-                ticket.betAmount.toLocaleString('fr-FR'),
-                (ticket.winAmount ?? 0).toLocaleString('fr-FR')
-            ]);
-
-            (doc as any).autoTable({
-                head: [tableColumn],
-                body: tableRows,
-                startY: 40,
-            });
-            
-            doc.save(`gagnants_${draw.operatorName}_${new Date(draw.drawDate).toLocaleDateString('fr-FR')}.pdf`);
-            toast.success("Export PDF des gagnants réussi !");
-        } catch (error) {
-            console.error("Erreur lors de l'export PDF:", error);
-            toast.error("Une erreur est survenue lors de la génération du PDF.");
-        } finally {
-            setIsExporting(false);
-        }
+        autoTable(doc, { head: [tableColumn], body: tableRows, startY: 40 });
+        
+        doc.save(`gagnants_${draw.operatorName}_${new Date(draw.drawDate).toLocaleDateString('fr-FR')}.pdf`);
+        toast.success("Export PDF des gagnants réussi !");
     };
 
-    // --- MODIFICATION 3 : La logique d'export Excel est aussi asynchrone ---
-    const handleExportAllParticipantsExcel = async () => {
-        if (!report || isExporting) return;
-        
+    const handleExportAllParticipantsExcel = () => {
+        if (!report) return;
         if (report.tickets.length === 0) {
             toast.info("Il n'y a aucun participant à exporter.");
             return;
         }
 
-        setIsExporting(true);
-        toast.info("Préparation de l'export Excel...");
+        const dataForSheet = report.tickets.map(ticket => ({
+            "Utilisateur": ticket.username, "Type de Pari": ticket.betType,
+            "Numéros Joués": ticket.numbers, "Mise (F CFA)": ticket.betAmount,
+            "Statut": ticket.status, "Gain (F CFA)": ticket.winAmount ?? 0,
+        }));
 
-        try {
-            // Importation dynamique
-            const XLSX = await import('xlsx');
-
-            const dataForSheet = report.tickets.map(ticket => ({
-                "Utilisateur": ticket.username,
-                "Type de Pari": ticket.betType,
-                "Numéros Joués": ticket.numbers,
-                "Mise (F CFA)": ticket.betAmount,
-                "Statut": ticket.status,
-                "Gain (F CFA)": ticket.winAmount ?? 0,
-            }));
-
-            const ws = XLSX.utils.json_to_sheet(dataForSheet);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Participants");
-
-            XLSX.writeFile(wb, `participants_${draw.operatorName}_${new Date(draw.drawDate).toLocaleDateString('fr-FR')}.xlsx`);
-            toast.success("Export Excel des participants réussi !");
-        } catch (error) {
-            console.error("Erreur lors de l'export Excel:", error);
-            toast.error("Une erreur est survenue lors de la génération du fichier Excel.");
-        } finally {
-            setIsExporting(false);
-        }
+        const ws = XLSX.utils.json_to_sheet(dataForSheet);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Participants");
+        XLSX.writeFile(wb, `participants_${draw.operatorName}_${new Date(draw.drawDate).toLocaleDateString('fr-FR')}.xlsx`);
+        toast.success("Export Excel des participants réussi !");
     };
 
     if (isLoading) {
@@ -473,8 +433,7 @@ function DrawReportView({ draw, onBack }: { draw: Draw; onBack: () => void; }) {
         );
     }
     
-    const { stats, tickets } = report;
-    const winners = tickets.filter(t => t.status === 'won');
+    const { stats } = report;
 
     return (
         <div className="p-4 md:p-6 lg:p-8 space-y-6">
@@ -485,14 +444,9 @@ function DrawReportView({ draw, onBack }: { draw: Draw; onBack: () => void; }) {
                         <h1 className="text-3xl font-bold">Rapport de Tirage</h1>
                         <p className="text-muted-foreground">{draw.operatorName} - {new Date(draw.drawDate).toLocaleDateString('fr-FR')}</p>
                     </div>
-                    {/* --- MODIFICATION 4 : Désactiver les boutons pendant l'export --- */}
                     <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={handleExportWinnersPDF} disabled={isExporting}>
-                           {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null} Exporter Gagnants (PDF)
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={handleExportAllParticipantsExcel} disabled={isExporting}>
-                           {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null} Exporter Participants (Excel)
-                        </Button>
+                        <Button variant="outline" size="sm" onClick={handleExportWinnersPDF}>Exporter Gagnants (PDF)</Button>
+                        <Button variant="outline" size="sm" onClick={handleExportAllParticipantsExcel}>Exporter Participants (Excel)</Button>
                     </div>
                 </div>
             </div>
