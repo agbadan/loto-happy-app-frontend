@@ -23,7 +23,7 @@ import { createWithdrawalRequest } from "../utils/withdrawalsAPI";
 import { toast } from "sonner";
 import { 
   ArrowLeft, Trophy, User, Bell, Lock, Palette, Sun, Moon, Monitor, LogOut,
-  ArrowRightLeft, Wallet, TrendingUp, TrendingDown, Repeat, Loader2
+  ArrowRightLeft, Wallet, TrendingUp, TrendingDown, Repeat, Loader2,Info 
 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 
