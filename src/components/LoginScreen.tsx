@@ -1,15 +1,11 @@
+// src/components/LoginScreen.tsx
+
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion"; // Assurez-vous que "framer-motion" est bien installé
+import { motion } from "framer-motion";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { toast } from "sonner";
 import { useTheme } from "./ThemeProvider";
 import { useAuth } from "../contexts/AuthContext";
@@ -17,10 +13,8 @@ import { GoogleAuthModal } from "./GoogleAuthModal";
 import { validatePhoneNumber } from "../utils/auth";
 
 interface LoginScreenProps {
-  // --- CORRECTION DE LA SIGNATURE ---
-  // onNavigateToPassword ne devrait prendre qu'un seul argument : l'identifiant.
   onNavigateToPassword: (identifier: string) => void;
-  //onNavigateToRegistration: (phoneNumber: string, countryCode: string, googleEmail?: string, googleName?: string) => void;
+  onNavigateToRegistration: (identifier?: string) => void;
 }
 
 const COUNTRIES = [
@@ -31,7 +25,6 @@ const COUNTRIES = [
   { code: "+225", name: "Côte d'Ivoire", flag: "🇨🇮" },
 ];
 
-// --- LOGIQUE D'ANIMATION QUI MANQUAIT ---
 interface Ball {
   id: number;
   size: number;
@@ -70,8 +63,6 @@ const generateBalls = (): Ball[] => {
   }
   return balls;
 };
-// --- FIN DE LA LOGIQUE D'ANIMATION ---
-
 
 export function LoginScreen({
   onNavigateToPassword,
@@ -80,7 +71,7 @@ export function LoginScreen({
   const { loginWithGoogle, error: authError } = useAuth();
   const [countryCode, setCountryCode] = useState("+228");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [balls] = useState<Ball[]>(generateBalls()); // Cet appel va maintenant fonctionner
+  const [balls] = useState<Ball[]>(generateBalls());
   const [animationMode, setAnimationMode] = useState(0);
   const [googleModalOpen, setGoogleModalOpen] = useState(false);
   
@@ -108,19 +99,16 @@ export function LoginScreen({
     const isEmail = phoneNumber.includes('@');
 
     if (isEmail) {
-      // Si c'est un email, on le passe directement.
       onNavigateToPassword(phoneNumber);
       return;
     }
     
-    // Si c'est un numéro de téléphone
     const validation = validatePhoneNumber(phoneNumber, countryCode);
     if (!validation.isValid) {
       toast.error(validation.message || "Numéro de téléphone invalide");
       return;
     }
     
-    // On construit le numéro complet et on le passe.
     const fullNumber = `${countryCode}${phoneNumber}`;
     onNavigateToPassword(fullNumber);
   };
@@ -131,12 +119,8 @@ export function LoginScreen({
     const result = await loginWithGoogle(email, name);
     if (result?.isNewUser) {
       toast.success("Compte Google validé. Veuillez finaliser votre inscription.");
-      onNavigateToRegistration("", "", result.email, result.name);
-    } else if (result) {
-      toast.success(`Bienvenue, ${result.name}!`);
-      // Le AuthContext gère la redirection
+      onNavigateToRegistration(result.email);
     }
-    // L'erreur est déjà gérée et affichée par le AuthContext
   };
 
   return (
@@ -214,9 +198,8 @@ export function LoginScreen({
                 <Input id="phone" type="text" placeholder="90 12 34 56" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="flex-1 focus:ring-2 focus:ring-[#FFD700]/20" style={{ backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#d1d1d6', color: isDark ? '#EAEAEA' : '#1C1C1E' }}/>
               </div>
             </div>
-            <Button className="w-full rounded-full bg-[#FFD700] text-lg text-[#121212] hover:bg-[#FFD700]/90 hover:shadow-lg hover:shadow-[#FFD700]/30 transition-all" onClick={handleContinue}>
+            <Button className="w-full rounded-full bg-[#FFD700] text-lg text-[#121212] hover:bg-[#FFD700]/90 hover:shadow-lg hover:shadow-[#FFD700]/30 transition-all" onClick={handleContinue}>Continuer</Button>
             
-                        {/* --- AJOUTEZ CE BLOC JUSTE ICI --- */}
             <p className="text-center text-sm" style={{ color: isDark ? '#8E8E93' : '#6e6e73' }}>
               Pas encore de compte ?{' '}
               <button 
@@ -226,7 +209,6 @@ export function LoginScreen({
                 Inscrivez-vous
               </button>
             </p>
-            {/* --- FIN DU BLOC À AJOUTER --- */}
 
             <div className="relative py-4">
               <div className="absolute inset-0 flex items-center"><div className="w-full border-t" style={{ borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#d1d1d6' }} /></div>
