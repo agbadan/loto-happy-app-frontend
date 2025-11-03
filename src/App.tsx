@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { Toaster } from "./components/ui/sonner";
 import { useAuth, User } from "./contexts/AuthContext";
-
+  
 // Import de tous vos écrans
 import { Dashboard } from "./components/Dashboard";
 import { GameScreen } from "./components/GameScreen";
