@@ -11,7 +11,7 @@ import { useTheme } from "./ThemeProvider";
 import { useAuth } from "../contexts/AuthContext";
 import { GoogleAuthModal } from "./GoogleAuthModal";
 import { validatePhoneNumber } from "../utils/auth";
-
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 interface LoginScreenProps {
   onNavigateToPassword: (identifier: string) => void;
   onNavigateToRegistration: (identifier?: string) => void;
