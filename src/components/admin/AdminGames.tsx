@@ -14,7 +14,7 @@ import { Plus, Calendar, Trophy, Clock, Info, Loader2, Archive } from "lucide-re
 
 // MISE À JOUR : Import des fonctions API réelles
 import { Draw, Multipliers, getAdminDrawsByStatus, createAdminDraw, publishDrawResults } from "../../utils/drawsAPI";
-import { OPERATORS_CONFIG } from "../../utils/dashboardAPI"; // On utilise la config des opérateurs de l'API publique
+import { OPERATORS_CONFIG as LOCAL_OPERATORS_CONFIG } from "../../utils/games";// On utilise la config des opérateurs de l'API publique
 
 // Définition des types de pari pour le formulaire
 const BET_TYPES_CONFIG: Record<string, { name: string; label: string }> = {
