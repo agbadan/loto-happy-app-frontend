@@ -15,10 +15,10 @@ interface PasswordLoginScreenProps {
   identifier: string;
   onBack: () => void;
   // La prop essentielle pour la redirection vers l'inscription
-  onNavigateToRegistration: (identifier: string) => void; 
+  //onNavigateToRegistration: (identifier: string) => void; 
 }
 
-export function PasswordLoginScreen({ identifier, onBack, onNavigateToRegistration }: PasswordLoginScreenProps) {
+export function PasswordLoginScreen({ identifier, onBack }: PasswordLoginScreenProps) {
   const { login, isLoading } = useAuth();
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -42,24 +42,15 @@ export function PasswordLoginScreen({ identifier, onBack, onNavigateToRegistrati
       // Afficher un toast ici est redondant car l'écran va disparaître immédiatement.
       
     } catch (err: any) {
-      // 3. Si ça échoue, on attrape l'erreur propagée par AuthContext
+      // --- LA CORRECTION EST ICI ---
       const errorStatus = err?.response?.status;
 
-      if (errorStatus === 404) {
-        // C'EST LE CAS QUI NOUS INTÉRESSE ! Utilisateur non trouvé.
-        toast.error("Aucun compte trouvé. Redirection vers l'inscription...");
-        
-        // On attend 2 secondes pour que l'utilisateur ait le temps de lire le message
-        // avant que l'écran ne change. C'est une meilleure UX.
-        setTimeout(() => {
-          onNavigateToRegistration(identifier);
-        }, 2000);
-
-      } else if (errorStatus === 401) {
-        // Mot de passe incorrect. On affiche un message clair.
-        toast.error("Mot de passe incorrect.");
+      // Que l'erreur soit 404 (non trouvé) ou 401 (non autorisé/mauvais mdp),
+      // on affiche le MÊME message générique pour des raisons de sécurité.
+      if (errorStatus === 404 || errorStatus === 401) {
+        toast.error("Identifiant ou mot de passe incorrect.");
       } else {
-        // Pour toutes les autres erreurs (problème de réseau, serveur 500...)
+        // Pour toutes les autres erreurs (réseau, serveur 500...)
         const errorMessage = err?.response?.data?.detail || "Une erreur inattendue est survenue.";
         toast.error(errorMessage);
       }

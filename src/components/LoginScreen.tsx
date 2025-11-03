@@ -20,7 +20,7 @@ interface LoginScreenProps {
   // --- CORRECTION DE LA SIGNATURE ---
   // onNavigateToPassword ne devrait prendre qu'un seul argument : l'identifiant.
   onNavigateToPassword: (identifier: string) => void;
-  onNavigateToRegistration: (phoneNumber: string, countryCode: string, googleEmail?: string, googleName?: string) => void;
+  //onNavigateToRegistration: (phoneNumber: string, countryCode: string, googleEmail?: string, googleName?: string) => void;
 }
 
 const COUNTRIES = [
@@ -214,7 +214,20 @@ export function LoginScreen({
                 <Input id="phone" type="text" placeholder="90 12 34 56" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="flex-1 focus:ring-2 focus:ring-[#FFD700]/20" style={{ backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF', borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#d1d1d6', color: isDark ? '#EAEAEA' : '#1C1C1E' }}/>
               </div>
             </div>
-            <Button className="w-full rounded-full bg-[#FFD700] text-lg text-[#121212] hover:bg-[#FFD700]/90 hover:shadow-lg hover:shadow-[#FFD700]/30 transition-all" onClick={handleContinue}>Continuer</Button>
+            <Button className="w-full rounded-full bg-[#FFD700] text-lg text-[#121212] hover:bg-[#FFD700]/90 hover:shadow-lg hover:shadow-[#FFD700]/30 transition-all" onClick={handleContinue}>
+            
+                        {/* --- AJOUTEZ CE BLOC JUSTE ICI --- */}
+            <p className="text-center text-sm" style={{ color: isDark ? '#8E8E93' : '#6e6e73' }}>
+              Pas encore de compte ?{' '}
+              <button 
+                onClick={() => onNavigateToRegistration(phoneNumber)} 
+                className="font-semibold text-[#FFD700] hover:underline focus:outline-none"
+              >
+                Inscrivez-vous
+              </button>
+            </p>
+            {/* --- FIN DU BLOC À AJOUTER --- */}
+
             <div className="relative py-4">
               <div className="absolute inset-0 flex items-center"><div className="w-full border-t" style={{ borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#d1d1d6' }} /></div>
               <div className="relative flex justify-center"><span className="px-4 text-sm" style={{ backgroundColor: isDark ? 'rgba(28, 28, 30, 0.9)' : 'rgba(255, 255, 255, 0.9)', color: isDark ? '#8E8E93' : '#6e6e73' }}>Ou continuez avec</span></div>
