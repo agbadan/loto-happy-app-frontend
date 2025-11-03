@@ -3,8 +3,10 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 // L'import du VRAI client API
 import apiClient from '../services/apiClient'; 
-import { loginUser as apiLogin, registerUser as apiRegister } from '../utils/authAPI';
+import { loginUser as apiLogin, registerUser as apiRegister , loginWithGoogleAPI} from '../utils/authAPI';
 import { getToken, saveToken, removeToken } from '../utils/tokenStorage'; // Supposons que ce fichier existe
+
+
 
 export interface User {
   id: string;
@@ -26,6 +28,7 @@ interface AuthContextType {
   register: (userData: any) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  loginWithGoogle: (email: string, name: string) => Promise<any>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,6 +36,26 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+    // NOUVELLE FONCTION à ajouter dans le provider
+  const loginWithGoogle = async (email: string, name: string) => {
+    try {
+      const response = await loginWithGoogleAPI(email, name);
+      if (response.isNewUser) {
+        // C'est un nouvel utilisateur, on ne le connecte pas encore.
+        // On renvoie les infos à l'écran de connexion pour qu'il redirige.
+        return { isNewUser: true, email: response.email, name: response.name };
+      } else {
+        // C'est un utilisateur existant, on le connecte.
+        saveToken(response.token);
+        setUser(response.user);
+        return { isNewUser: false, user: response.user };
+      }
+    } catch (error) {
+      console.error("Erreur lors de la connexion Google:", error);
+      throw error;
+    }
+  };
 
   const fetchUser = async () => {
     try {
@@ -92,7 +115,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout, refreshUser , loginWithGoogle}}>
       {children}
     </AuthContext.Provider>
   );

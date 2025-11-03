@@ -85,17 +85,33 @@ export const changePassword = async (oldPassword: string, newPassword: string): 
   await apiClient.put('/api/auth/change-password', passwordData);
 };
 
-/**
- * Gère la connexion via Google (Placeholder).
- */
-export const loginWithGoogle = async (googleToken: string, name: string): Promise<any> => {
-  console.warn("La fonctionnalité de connexion Google n'est pas encore implémentée côté backend.");
-  throw new Error("Connexion Google non disponible.");
-};
+
 
 /**
  * La déconnexion est gérée côté client en supprimant le token, pas besoin d'appel API.
  */
 export const logoutUser = () => {
   console.log("Déconnexion de l'utilisateur (opération côté client).");
+};
+
+
+/**
+ * Gère la connexion ou la pré-inscription via Google.
+ */
+export const loginWithGoogleAPI = async (email: string, name: string): Promise<any> => {
+  const response = await apiClient.post('/api/auth/google/login', { email, name });
+  return response.data;
+};
+
+/**
+ * Finalise l'inscription d'un utilisateur Google avec les informations supplémentaires.
+ */
+export const completeGoogleRegistrationAPI = async (userData: {
+  email: string;
+  name: string;
+  username: string;
+  phoneNumber: string;
+}): Promise<AuthResponse> => {
+  const response = await apiClient.post<AuthResponse>('/api/auth/google/register', userData);
+  return response.data;
 };

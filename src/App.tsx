@@ -41,10 +41,11 @@ export default function App() {
   const { user, isLoading, logout } = useAuth();
 
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
-  const [authIdentifier, setAuthIdentifier] = useState<string>('');
-  const [selectedGame, setSelectedGame] = useState<string>('');
   
-  // NOUVEAU: Ajout d'un état pour le montant de la recharge
+  // --- CORRECTION MAJEURE : Un seul état pour gérer les données d'authentification ---
+  const [authData, setAuthData] = useState<{ identifier: string; googleName?: string } | null>(null);
+  
+  const [selectedGame, setSelectedGame] = useState<string>('');
   const [rechargeAmount, setRechargeAmount] = useState<number | undefined>(undefined);
 
   useEffect(() => {
@@ -59,16 +60,29 @@ export default function App() {
   }, [user, isLoading]);
 
   const handleLogout = () => { logout(); };
-  const handleNavigateToPassword = (identifier: string) => { setAuthIdentifier(identifier); setCurrentScreen('password'); };
-  const handleNavigateToRegistration = (identifier?: string) => { setAuthIdentifier(identifier || ''); setCurrentScreen('registration'); };
-  const handleBackToLogin = () => { setAuthIdentifier(''); setCurrentScreen('login'); };
+
+  // --- CORRECTIONS DANS LES FONCTIONS DE NAVIGATION ---
+
+  const handleNavigateToPassword = (identifier: string) => { 
+    setAuthData({ identifier });
+    setCurrentScreen('password'); 
+  };
+  
+  const handleNavigateToRegistration = (identifier?: string, googleName?: string) => { 
+    setAuthData({ identifier: identifier || '', googleName });
+    setCurrentScreen('registration'); 
+  };
+
+  const handleBackToLogin = () => { 
+    setAuthData(null); 
+    setCurrentScreen('login'); 
+  };
   
   const handleBackToDashboard = () => {
     const homeScreen = user ? getHomeScreenForUser(user) : 'login';
     setCurrentScreen(homeScreen);
   };
   
-  // NOUVELLE FONCTION: Pour naviguer vers les revendeurs
   const handleNavigateToResellers = (amount?: number) => {
     setRechargeAmount(amount);
     setCurrentScreen('resellers');
@@ -87,16 +101,31 @@ export default function App() {
 
   return (
     <ThemeProvider>
+      {/* --- CORRECTIONS DANS LES PROPS PASSÉES AUX COMPOSANTS --- */}
       {currentScreen === 'login' && <LoginScreen onNavigateToPassword={handleNavigateToPassword} onNavigateToRegistration={handleNavigateToRegistration} />}
-      {currentScreen === 'password' && <PasswordLoginScreen identifier={authIdentifier} onBack={handleBackToLogin} />}
-      {currentScreen === 'registration' && <RegistrationScreen prefilledIdentifier={authIdentifier} onBack={handleBackToLogin} />}
+      
+      {currentScreen === 'password' && authData && <PasswordLoginScreen identifier={authData.identifier} onBack={handleBackToLogin} />}
+      
+      {currentScreen === 'registration' && <RegistrationScreen 
+          prefilledIdentifier={authData?.identifier} 
+          prefilledName={authData?.googleName}
+          onBack={handleBackToLogin} 
+      />}
+      
       {currentScreen === 'dashboard' && user && <Dashboard onNavigateToGame={handleNavigateToGame} onNavigateToProfile={handleNavigateToProfile} onNavigateToResellers={handleNavigateToResellers} onNavigateToResults={() => setCurrentScreen('results')} onLogout={handleLogout} />}
+      
       {currentScreen === 'game' && user && <GameScreen drawId={selectedGame} onBack={handleBackToDashboard} onNavigateToProfile={handleNavigateToProfile} />}
+      
       {currentScreen === 'profile' && user && <ProfileScreen onBack={handleBackToDashboard} onNavigateToProfile={handleNavigateToProfile} />}
+      
       {currentScreen === 'resellers' && user && <ResellersScreen onBack={handleBackToDashboard} rechargeAmount={rechargeAmount} />}
+      
       {currentScreen === 'results' && <ResultsScreen onBack={handleBackToDashboard} />}
+      
       {currentScreen === 'reseller-dashboard' && user && <ResellerDashboard onLogout={handleLogout} />}
+      
       {currentScreen === 'admin-panel' && user && <AdminPanel onLogout={handleLogout} />}
+      
       <Toaster position="top-center" />
     </ThemeProvider>
   );

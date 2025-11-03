@@ -105,18 +105,23 @@ export function LoginScreen({
     onNavigateToPassword(fullNumber);
   };
 
+  // MODIFICATION : Mettez à jour cette fonction
   const handleGoogleAccountSelect = async (email: string, name: string) => {
     setGoogleModalOpen(false);
-    toast.error("La connexion avec Google n'est pas encore implémentée.");
-    // NOTE: Le code ci-dessous est désactivé car `loginWithGoogle` n'existe pas encore.
-    /*
-    toast.info("Connexion avec Google en cours...");
-    const result = await loginWithGoogle(email, name);
-    if (result?.isNewUser) {
-      toast.success("Compte Google validé. Veuillez finaliser votre inscription.");
-      onNavigateToRegistration(result.email);
+    toast.info("Vérification du compte Google...");
+    try {
+        const result = await loginWithGoogle(email, name);
+        if (result?.isNewUser) {
+          toast.success("Compte Google validé. Veuillez finaliser votre inscription.");
+          // On passe l'email et le nom à la fonction de navigation
+          onNavigateToRegistration(result.email, result.name);
+        } else if (result?.user) {
+          // L'utilisateur a été connecté par le contexte, on n'a rien à faire
+          toast.success(`Bienvenue, ${result.user.username} !`);
+        }
+    } catch (err) {
+        toast.error("Une erreur est survenue lors de la connexion avec Google.");
     }
-    */
   };
 
   return (
