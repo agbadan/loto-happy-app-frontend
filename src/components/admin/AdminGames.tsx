@@ -81,29 +81,46 @@ export function AdminGames() {
     </Button>
 </header>
             
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AdminDrawStatus)}>
-                <TabsList className="grid w-full max-w-lg grid-cols-3 bg-muted">
-                    <TabsTrigger value="upcoming"><Calendar className="h-4 w-4 mr-2"/>À Venir <Badge className="ml-2">{drawsByStatus.upcoming.length}</Badge></TabsTrigger>
-                    <TabsTrigger value="pending"><Timer className="h-4 w-4 mr-2"/>Résultats <Badge className="ml-2">{drawsByStatus.pending.length}</Badge></TabsTrigger>
-                    <TabsTrigger value="archived"><Trophy className="h-4 w-4 mr-2"/>Archives <Badge className="ml-2">{drawsByStatus.archived.length}</Badge></TabsTrigger>
-                </TabsList>
+{/* CODE CORRIGÉ À COLLER */}
+<Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AdminDrawStatus)}>
+    {/* Conteneur pour permettre le défilement horizontal */}
+    <div className="w-full overflow-x-auto">
+        <TabsList className="inline-flex w-auto min-w-full sm:w-full sm:max-w-lg bg-muted">
+            {/* Les triggers ont maintenant une taille minimale pour ne pas être écrasés */}
+            <TabsTrigger value="upcoming" className="flex-1 min-w-[140px] gap-2">
+                <Calendar className="h-4 w-4" />
+                <span>À Venir</span>
+                <Badge>{drawsByStatus.upcoming.length}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="pending" className="flex-1 min-w-[140px] gap-2">
+                <Timer className="h-4 w-4" />
+                <span>Résultats</span>
+                <Badge>{drawsByStatus.pending.length}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="archived" className="flex-1 min-w-[140px] gap-2">
+                <Trophy className="h-4 w-4" />
+                <span>Archives</span>
+                <Badge>{drawsByStatus.archived.length}</Badge>
+            </TabsTrigger>
+        </TabsList>
+    </div>
 
-                <TabsContent value={activeTab} className="mt-6">
-                    {isLoading ? (
-                        <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground"/></div>
-                    ) : error[activeTab] ? (
-                        <ErrorState message={error[activeTab]!} />
-                    ) : drawsByStatus[activeTab].length === 0 ? (
-                       <EmptyState status={activeTab} onCreateClick={() => setCreateModalOpen(true)} />
-                    ) : (
-                        <div className="grid gap-4">
-                            {drawsByStatus[activeTab].map((draw) => (
-                                <DrawCard key={draw.id} draw={draw} onEnterResults={() => {setSelectedDraw(draw); setResultsModalOpen(true);}} onViewReport={() => {setSelectedDraw(draw); setReportView(true);}} />
-                            ))}
-                        </div>
-                    )}
-                </TabsContent>
-            </Tabs>
+    <TabsContent value={activeTab} className="mt-6">
+        {isLoading ? (
+            <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground"/></div>
+        ) : error[activeTab] ? (
+            <ErrorState message={error[activeTab]!} />
+        ) : drawsByStatus[activeTab].length === 0 ? (
+           <EmptyState status={activeTab} onCreateClick={() => setCreateModalOpen(true)} />
+        ) : (
+            <div className="grid gap-4">
+                {drawsByStatus[activeTab].map((draw) => (
+                    <DrawCard key={draw.id} draw={draw} onEnterResults={() => {setSelectedDraw(draw); setResultsModalOpen(true);}} onViewReport={() => {setSelectedDraw(draw); setReportView(true);}} />
+                ))}
+            </div>
+        )}
+    </TabsContent>
+</Tabs>
             
             <CreateDrawModal 
                 isOpen={isCreateModalOpen} 
@@ -281,7 +298,7 @@ function CreateDrawModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onCl
                 </div>
                 <DialogFooter className="pt-4 border-t mt-auto">
                     <Button variant="ghost" onClick={onClose}>Annuler</Button>
-                    <Button onClick={handleCreate} disabled={isSubmitting} className="bg-yellow-400 text-black hover:bg-yellow-500">
+                    <Button onClick={handleCreate} disabled={isSubmitting} className="bg-[#FFD700] text-[#121212] hover:bg-[#FFD700]/90">
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Créer le Tirage
                     </Button>
                 </DialogFooter>
