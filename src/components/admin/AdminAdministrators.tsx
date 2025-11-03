@@ -116,7 +116,7 @@ export function AdminAdministrators() {
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div><h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-3"><Shield className="h-7 w-7 text-yellow-400" />Gestion des Administrateurs</h1><p className="text-sm text-muted-foreground mt-1">Gérez les comptes et permissions de votre équipe</p></div>
-        <Button onClick={() => setCreateModalOpen(true)} className="bg-yellow-400 text-black hover:bg-yellow-500 w-full sm:w-auto"><UserPlus className="mr-2 h-4 w-4" />Nouvel Administrateur</Button>
+        <Button onClick={() => setCreateModalOpen(true)} className="bg-[#FFD700] text-[#121212] hover:bg-[#FFD700]/90 w-full sm:w-auto flex-shrink-0"><UserPlus className="mr-2 h-4 w-4" />Nouvel Administrateur</Button>
       </div>
       <Card className="border-border bg-card overflow-hidden">
         <div className="overflow-x-auto">
