@@ -136,17 +136,17 @@ function DrawCard({ draw, onEnterResults, onViewReport }: { draw: Draw; onEnterR
 
     return (
       <Card className="p-4 md:p-6">
-        <div className="flex justify-between items-start flex-wrap gap-4">
+        {/* --- DÉBUT DE LA CORRECTION RESPONSIVE --- */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+            
+            {/* Section Gauche : Infos du tirage */}
             <div className="flex items-start gap-4">
-                {/* --- LA CORRECTION EST ICI --- */}
-                {/* On affiche directement l'icône, sans le .slice() */}
-                {/* J'ai aussi ajusté le style pour mieux correspondre à votre design */}
-                <span className="text-2xl font-bold text-muted-foreground pt-1 w-10 text-center">
+                <span className="text-xl font-bold text-muted-foreground pt-1 w-10 text-center">
                   {draw.operatorIcon || '🎲'}
                 </span>
                 <div>
                     <h3 className="font-bold text-lg">{draw.operatorName}</h3>
-                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+                    <div className="mt-2 flex flex-col xs:flex-row items-start xs:items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /><span>{formattedDate}</span></div>
                         <div className="flex items-center gap-1.5"><Clock className="h-4 w-4" /><span>{formattedTime}</span></div>
                     </div>
@@ -173,17 +173,22 @@ function DrawCard({ draw, onEnterResults, onViewReport }: { draw: Draw; onEnterR
                     )}
                 </div>
             </div>
-            {draw.status === 'pending' && (
-              <Button size="sm" onClick={onEnterResults} className="bg-orange-500 hover:bg-orange-600 text-white">
-                  Saisir les Résultats
-              </Button>
-            )}
-            {draw.status === 'archived' && (
-              <Button size="sm" variant="outline" onClick={onViewReport}>
-                  <Eye className="h-4 w-4 mr-2" />Voir Rapport
-              </Button>
-            )}
+            
+            {/* Section Droite : Boutons d'action */}
+            <div className="w-full sm:w-auto flex-shrink-0">
+                {draw.status === 'pending' && (
+                  <Button size="sm" onClick={onEnterResults} className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white">
+                      Saisir les Résultats
+                  </Button>
+                )}
+                {draw.status === 'archived' && (
+                  <Button size="sm" variant="outline" onClick={onViewReport} className="w-full sm:w-auto">
+                      <Eye className="h-4 w-4 mr-2" />Voir Rapport
+                  </Button>
+                )}
+            </div>
         </div>
+        {/* --- FIN DE LA CORRECTION RESPONSIVE --- */}
       </Card>
     );
 }
