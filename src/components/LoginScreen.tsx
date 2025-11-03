@@ -68,11 +68,11 @@ export function LoginScreen({
   onNavigateToPassword,
   onNavigateToRegistration,
 }: LoginScreenProps) {
-  const { loginWithGoogle, error: authError } = useAuth();
+  // NOTE: loginWithGoogle n'existe pas dans le contexte, on le retire pour l'instant
+  const { error: authError } = useAuth();
   const [countryCode, setCountryCode] = useState("+228");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [balls] = useState<Ball[]>(generateBalls());
-  const [animationMode, setAnimationMode] = useState(0);
   const [googleModalOpen, setGoogleModalOpen] = useState(false);
   
   const { actualTheme } = useTheme();
@@ -84,20 +84,12 @@ export function LoginScreen({
     }
   }, [authError]);
 
-  useEffect(() => {
-    const changeAnimation = () => setAnimationMode(prev => (prev + 1) % 3);
-    const timeoutId = setTimeout(changeAnimation, Math.random() * 20000 + 30000);
-    return () => clearTimeout(timeoutId);
-  }, [animationMode]);
-
   const handleContinue = () => {
     if (!phoneNumber) {
       toast.error("Veuillez entrer un email ou un numéro de téléphone.");
       return;
     }
-
     const isEmail = phoneNumber.includes('@');
-
     if (isEmail) {
       onNavigateToPassword(phoneNumber);
       return;
@@ -115,12 +107,16 @@ export function LoginScreen({
 
   const handleGoogleAccountSelect = async (email: string, name: string) => {
     setGoogleModalOpen(false);
+    toast.error("La connexion avec Google n'est pas encore implémentée.");
+    // NOTE: Le code ci-dessous est désactivé car `loginWithGoogle` n'existe pas encore.
+    /*
     toast.info("Connexion avec Google en cours...");
     const result = await loginWithGoogle(email, name);
     if (result?.isNewUser) {
       toast.success("Compte Google validé. Veuillez finaliser votre inscription.");
       onNavigateToRegistration(result.email);
     }
+    */
   };
 
   return (
