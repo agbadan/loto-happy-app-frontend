@@ -16,10 +16,7 @@ import { Plus, Eye, Calendar, Trophy, Clock, Info, Loader2, Archive, Timer } fro
 import { Draw, Multipliers, getAdminDrawsByStatus, createAdminDraw, publishDrawResults, getDrawReport, DrawReport } from "../../utils/drawsAPI";
 import { OPERATORS_CONFIG as LOCAL_OPERATORS_CONFIG } from "../../utils/games";
 
-// --- AJOUTEZ CES IMPORTS EN HAUT DU FICHIER ---
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
-import * as XLSX from 'xlsx';
+
 
 
 const BET_TYPES_CONFIG: Record<string, { name: string; label: string }> = {
