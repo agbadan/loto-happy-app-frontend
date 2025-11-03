@@ -135,3 +135,44 @@ export const updateAdminDrawStatus = async (drawId: string, status: 'cancelled' 
   const response = await apiClient.patch<Draw>(`/api/admin/draws/${drawId}/status`, { status });
   return response.data;
 };
+
+
+
+// =====================================================================
+// ===== NOUVEAUTÉS POUR LE RAPPORT DE TIRAGE (ADMIN) ==================
+// =====================================================================
+
+// Interface pour les tickets dans le rapport de tirage
+interface ReportTicket {
+  id: string;
+  username: string;
+  betType: string;
+  numbers: string;
+  betAmount: number;
+  status: 'won' | 'lost' | 'pending';
+  winAmount?: number | null;
+}
+
+// Interface pour les statistiques du rapport
+interface ReportStats {
+  participants: number;
+  winners: number;
+  total_bets: number;
+  total_winnings: number;
+  profit: number;
+}
+
+// Interface pour la réponse complète du rapport
+export interface DrawReport {
+  draw_info: Draw;
+  stats: ReportStats;
+  tickets: ReportTicket[];
+}
+
+/**
+ * [ADMIN] Récupère le rapport détaillé d'un tirage spécifique.
+ */
+export const getDrawReport = async (drawId: string): Promise<DrawReport> => {
+  const response = await apiClient.get<DrawReport>(`/api/admin/draws/${drawId}/report`);
+  return response.data;
+};
