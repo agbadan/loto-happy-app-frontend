@@ -155,14 +155,25 @@ export function ProfileScreen({ onBack, onNavigateToProfile }: ProfileScreenProp
               </div>
             </div>
           </div>
-          <div className="mt-6 flex flex-col xs:flex-row justify-center gap-3">
-            <Button className="bg-green-600 text-white hover:bg-green-700" onClick={() => setConvertOpen(true)}>
-              <ArrowRightLeft className="mr-2 h-4 w-4" />Convertir
-            </Button>
-            <Button variant="brand" onClick={() => setWithdrawOpen(true)}>
-              <Wallet className="mr-2 h-4 w-4" />Retirer
-            </Button>
-          </div>
+{/* CODE CORRIGÉ À COLLER */}
+<div className="mt-6 flex flex-col xs:flex-row justify-center gap-3">
+    <Button 
+        className="bg-[#34C759] text-white hover:bg-[#34C759]/90" // Vert "success" de votre thème
+        onClick={() => setConvertOpen(true)}
+    >
+        <ArrowRightLeft className="mr-2 h-4 w-4" />
+        Convertir
+    </Button>
+    
+    {/* --- CORRECTION APPLIQUÉE ICI --- */}
+    <Button 
+        className="bg-[#FFD700] text-[#121212] hover:bg-[#FFD700]/90" // Classes explicites pour le jaune
+        onClick={() => setWithdrawOpen(true)}
+    >
+        <Wallet className="mr-2 h-4 w-4" />
+        Retirer
+    </Button>
+</div>
         </Card>
 
         <Tabs defaultValue="bets" className="space-y-6">
