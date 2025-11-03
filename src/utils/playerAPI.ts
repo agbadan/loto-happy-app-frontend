@@ -82,3 +82,20 @@ export const getMyTransactionHistory = async (page: number = 1, size: number = 2
     return [];
   }
 };
+
+
+/**
+ * [JOUEUR] Appelle l'API pour convertir un montant du solde des gains vers le solde de jeu.
+ * @param amount Le montant à convertir.
+ * @returns La réponse du serveur.
+ */
+export const convertWinningsAPI = async (amount: number): Promise<any> => {
+  try {
+    const response = await apiClient.post('/api/players/me/convert', { amount });
+    return response.data;
+  } catch (error) {
+    console.error("Erreur lors de la conversion des gains:", error);
+    // On propage l'erreur pour que le composant puisse l'afficher
+    throw error;
+  }
+};

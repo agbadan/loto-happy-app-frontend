@@ -14,16 +14,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Switch } from "./ui/switch";
 import { useTheme } from "./ThemeProvider";
 import { useAuth } from "../contexts/AuthContext";
 import { changePassword as apiChangePassword } from "../utils/authAPI";
-import { getMyTransactionHistory, PlayerTransaction } from "../utils/playerAPI";
+import { getMyTransactionHistory, convertWinningsAPI, PlayerTransaction } from "../utils/playerAPI";
 import { createWithdrawalRequest } from "../utils/withdrawalsAPI";
 import { toast } from "sonner";
 import { 
-  ArrowLeft, Trophy, User, Bell, Lock, Palette, Sun, Moon, Monitor, LogOut,
-  ArrowRightLeft, Wallet, TrendingUp, TrendingDown, Repeat, Eye, EyeOff, Smartphone, QrCode
+  ArrowLeft, Trophy, Lock, Palette, Sun, Moon, Monitor, LogOut,
+  ArrowRightLeft, Wallet
 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 
@@ -46,11 +45,7 @@ export function ProfileScreen({ onBack, onNavigateToProfile }: ProfileScreenProp
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [showOldPassword, setShowOldPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Solde récupéré directement depuis le contexte d'authentification
   const playBalance = user?.balanceGame ?? 0;
   const winningsBalance = user?.balanceWinnings ?? 0;
 
@@ -69,12 +64,11 @@ export function ProfileScreen({ onBack, onNavigateToProfile }: ProfileScreenProp
       }
     };
     fetchTransactions();
-  }, [user]);
+  }, [user, refreshUser]); // On ajoute refreshUser aux dépendances pour recharger après conversion
 
   const handleLogout = () => {
     logout();
     toast.success('Déconnexion réussie ! À bientôt 👋');
-    onBack();
   };
 
   const handleChangePassword = async () => {
@@ -90,8 +84,11 @@ export function ProfileScreen({ onBack, onNavigateToProfile }: ProfileScreenProp
       await apiChangePassword(oldPassword, newPassword);
       toast.success('Mot de passe modifié avec succès !');
       setPasswordModalOpen(false);
-    } catch (error) {
-      toast.error((error as Error).message || "Une erreur s'est produite.");
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.detail || "Une erreur s'est produite.");
     }
   };
 
@@ -102,11 +99,22 @@ export function ProfileScreen({ onBack, onNavigateToProfile }: ProfileScreenProp
       toast.success("Demande de retrait envoyée avec succès !");
       setWithdrawOpen(false);
     } catch (error: any) {
-      toast.error(error.message || "Erreur lors de la demande de retrait");
+      toast.error(error?.response?.data?.detail || "Erreur lors de la demande de retrait");
     }
   };
   
-  // Affiche un état de chargement si l'utilisateur n'est pas encore chargé
+  const handleConvertWinnings = async (amount: number): Promise<boolean> => {
+    try {
+      await convertWinningsAPI(amount);
+      await refreshUser();
+      return true; // Succès
+    } catch (err: any) {
+      const errorMessage = err?.response?.data?.detail || "Une erreur est survenue lors de la conversion.";
+      toast.error(errorMessage);
+      return false; // Échec
+    }
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -120,7 +128,8 @@ export function ProfileScreen({ onBack, onNavigateToProfile }: ProfileScreenProp
       <Header 
         balance={playBalance}
         onRecharge={() => setRechargeOpen(true)} 
-        onProfile={onNavigateToProfile} 
+        onProfile={onNavigateToProfile}
+        onLogout={handleLogout}
       />
       <main className="container px-4 py-8">
         <Button variant="ghost" className="mb-6" onClick={onBack}>
@@ -155,25 +164,22 @@ export function ProfileScreen({ onBack, onNavigateToProfile }: ProfileScreenProp
               </div>
             </div>
           </div>
-{/* CODE CORRIGÉ À COLLER */}
-<div className="mt-6 flex flex-col xs:flex-row justify-center gap-3">
-    <Button 
-        className="bg-[#34C759] text-white hover:bg-[#34C759]/90" // Vert "success" de votre thème
-        onClick={() => setConvertOpen(true)}
-    >
-        <ArrowRightLeft className="mr-2 h-4 w-4" />
-        Convertir
-    </Button>
-    
-    {/* --- CORRECTION APPLIQUÉE ICI --- */}
-    <Button 
-        className="bg-[#FFD700] text-[#121212] hover:bg-[#FFD700]/90" // Classes explicites pour le jaune
-        onClick={() => setWithdrawOpen(true)}
-    >
-        <Wallet className="mr-2 h-4 w-4" />
-        Retirer
-    </Button>
-</div>
+          <div className="mt-6 flex flex-col xs:flex-row justify-center gap-3">
+            <Button 
+                className="bg-[#34C759] text-white hover:bg-[#34C759]/90"
+                onClick={() => setConvertOpen(true)}
+            >
+                <ArrowRightLeft className="mr-2 h-4 w-4" />
+                Convertir
+            </Button>
+            <Button 
+                className="bg-[#FFD700] text-[#121212] hover:bg-[#FFD700]/90"
+                onClick={() => setWithdrawOpen(true)}
+            >
+                <Wallet className="mr-2 h-4 w-4" />
+                Retirer
+            </Button>
+          </div>
         </Card>
 
         <Tabs defaultValue="bets" className="space-y-6">
@@ -192,10 +198,18 @@ export function ProfileScreen({ onBack, onNavigateToProfile }: ProfileScreenProp
               <Card className="p-8 text-center"><p className="text-muted-foreground">📊 Aucune transaction pour le moment</p></Card>
             ) : (
               transactions.map((transaction) => {
-                // ... (logique d'affichage des transactions)
+                const isCredit = transaction.amount > 0;
                 return (
                   <Card key={transaction.id} className="p-4">
-                    {/* Contenu de la carte transaction */}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold">{transaction.description}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(transaction.date).toLocaleString('fr-FR')}</p>
+                      </div>
+                      <div className={`font-bold text-lg ${isCredit ? 'text-green-500' : 'text-red-500'}`}>
+                        {isCredit ? '+' : ''}{transaction.amount.toLocaleString('fr-FR')} F
+                      </div>
+                    </div>
                   </Card>
                 );
               })
@@ -227,7 +241,12 @@ export function ProfileScreen({ onBack, onNavigateToProfile }: ProfileScreenProp
       <Footer />
       
       <RechargeModal open={rechargeOpen} onClose={() => setRechargeOpen(false)} balance={playBalance} onNavigateToResellers={() => {}}/>
-      <ConvertModal open={convertOpen} onClose={() => setConvertOpen(false)} winningsBalance={winningsBalance} onConvert={() => { /* Logique de conversion */ return true; }} />
+      <ConvertModal 
+        open={convertOpen} 
+        onClose={() => setConvertOpen(false)} 
+        winningsBalance={winningsBalance} 
+        onConvert={handleConvertWinnings} 
+      />
       <WithdrawModal open={withdrawOpen} onOpenChange={setWithdrawOpen} currentBalance={winningsBalance} onWithdraw={handleWithdraw} />
 
       <Dialog open={passwordModalOpen} onOpenChange={setPasswordModalOpen}>
