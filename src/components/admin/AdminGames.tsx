@@ -66,44 +66,49 @@ export function AdminGames() {
 
     return (
         <div className="p-4 md:p-8 space-y-8">
-{/* CODE CORRIGÉ À COLLER */}
-<header className="flex justify-between items-start flex-wrap gap-4">
-    <div>
-        <h1 className="text-3xl font-bold">Gestion des Tirages</h1>
-        <p className="text-muted-foreground mt-1">Créez des tirages, saisissez les résultats et consultez les archives</p>
-    </div>
-    {/* --- CORRECTION APPLIQUÉE ICI --- */}
-    <Button 
-        onClick={() => setCreateModalOpen(true)} 
-        className="bg-[#FFD700] text-[#121212] hover:bg-[#FFD700]/90"
-    >
-        <Plus className="mr-2 h-4 w-4" />Nouveau Tirage
-    </Button>
-</header>
+        <div className="p-4 md:p-8 space-y-8">
+            {/* --- DÉBUT DE LA CORRECTION RESPONSIVE --- */}
             
-{/* CODE CORRIGÉ À COLLER */}
-<Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AdminDrawStatus)}>
-    {/* Conteneur pour permettre le défilement horizontal */}
-    <div className="w-full overflow-x-auto">
-        <TabsList className="inline-flex w-auto min-w-full sm:w-full sm:max-w-lg bg-muted">
-            {/* Les triggers ont maintenant une taille minimale pour ne pas être écrasés */}
-            <TabsTrigger value="upcoming" className="flex-1 min-w-[140px] gap-2">
-                <Calendar className="h-4 w-4" />
-                <span>À Venir</span>
-                <Badge>{drawsByStatus.upcoming.length}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="pending" className="flex-1 min-w-[140px] gap-2">
-                <Timer className="h-4 w-4" />
-                <span>Résultats</span>
-                <Badge>{drawsByStatus.pending.length}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="archived" className="flex-1 min-w-[140px] gap-2">
-                <Trophy className="h-4 w-4" />
-                <span>Archives</span>
-                <Badge>{drawsByStatus.archived.length}</Badge>
-            </TabsTrigger>
-        </TabsList>
-    </div>
+            {/* Conteneur principal pour le header de la page */}
+            <div className="space-y-4">
+                
+                {/* Ligne 1 : Titre et Bouton, qui s'empilent sur mobile */}
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold">Gestion des Tirages</h1>
+                        <p className="text-muted-foreground mt-1">Créez des tirages, saisissez les résultats et consultez les archives</p>
+                    </div>
+                    <Button 
+                        onClick={() => setCreateModalOpen(true)} 
+                        className="bg-yellow-400 text-black hover:bg-yellow-500 w-full sm:w-auto flex-shrink-0"
+                    >
+                        <Plus className="mr-2 h-4 w-4" />Nouveau Tirage
+                    </Button>
+                </div>
+                
+                {/* Ligne 2 : Barre d'onglets */}
+                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AdminDrawStatus)}>
+                    <div className="w-full overflow-x-auto">
+                        <TabsList className="inline-flex w-auto min-w-full sm:w-full sm:max-w-lg bg-muted">
+                            <TabsTrigger value="upcoming" className="flex-1 min-w-[140px] gap-2">
+                                <Calendar className="h-4 w-4" />
+                                <span>À Venir</span>
+                                <Badge>{drawsByStatus.upcoming.length}</Badge>
+                            </TabsTrigger>
+                            <TabsTrigger value="pending" className="flex-1 min-w-[140px] gap-2">
+                                <Timer className="h-4 w-4" />
+                                <span>Résultats</span>
+                                <Badge>{drawsByStatus.pending.length}</Badge>
+                            </TabsTrigger>
+                            <TabsTrigger value="archived" className="flex-1 min-w-[140px] gap-2">
+                                <Trophy className="h-4 w-4" />
+                                <span>Archives</span>
+                                <Badge>{drawsByStatus.archived.length}</Badge>
+                            </TabsTrigger>
+                        </TabsList>
+                    </div>
+                </Tabs>
+            </div>
 
     <TabsContent value={activeTab} className="mt-6">
         {isLoading ? (
