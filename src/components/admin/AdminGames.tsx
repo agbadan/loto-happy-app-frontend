@@ -122,6 +122,8 @@ export function AdminGames() {
 
 // --- SOUS-COMPOSANTS ---
 
+
+
 function DrawCard({ draw, onEnterResults, onViewReport }: { draw: Draw; onEnterResults: () => void; onViewReport: () => void; }) {
     const drawDate = new Date(draw.drawDate);
     const formattedDate = !isNaN(drawDate.getTime()) ? drawDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : "Date invalide";
@@ -131,9 +133,11 @@ function DrawCard({ draw, onEnterResults, onViewReport }: { draw: Draw; onEnterR
       <Card className="p-4 md:p-6">
         <div className="flex justify-between items-start flex-wrap gap-4">
             <div className="flex items-start gap-4">
-                {/* --- CORRECTION 1 : Affichage du préfixe pays au lieu de l'icône --- */}
-                <span className="text-xl font-bold text-muted-foreground pt-1 w-8">
-                  {draw.operatorIcon.slice(0, 2)}
+                {/* --- LA CORRECTION EST ICI --- */}
+                {/* On affiche directement l'icône, sans le .slice() */}
+                {/* J'ai aussi ajusté le style pour mieux correspondre à votre design */}
+                <span className="text-2xl font-bold text-muted-foreground pt-1 w-10 text-center">
+                  {draw.operatorIcon || '🎲'}
                 </span>
                 <div>
                     <h3 className="font-bold text-lg">{draw.operatorName}</h3>
@@ -142,12 +146,10 @@ function DrawCard({ draw, onEnterResults, onViewReport }: { draw: Draw; onEnterR
                         <div className="flex items-center gap-1.5"><Clock className="h-4 w-4" /><span>{formattedTime}</span></div>
                     </div>
                     
-                    {/* --- CORRECTION 2 : Logique d'affichage pour les tirages À VENIR --- */}
                     {draw.status === 'upcoming' && (
                         <p className="text-xs text-muted-foreground mt-2">{draw.participants} participant(s)</p>
                     )}
 
-                    {/* --- CORRECTION 3 : Logique d'affichage robuste pour les tirages ARCHIVÉS --- */}
                     {draw.status === 'archived' && (
                         <div className="mt-3 space-y-2">
                             <p className="flex items-center gap-1.5 text-sm font-semibold text-yellow-400">
@@ -180,6 +182,7 @@ function DrawCard({ draw, onEnterResults, onViewReport }: { draw: Draw; onEnterR
       </Card>
     );
 }
+
 
 function ErrorState({ message }: { message: string }) {
     return (
