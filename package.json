@@ -4,9 +4,9 @@
       "version": "0.1.0",
       "private": true,
       "dependencies": {
-        "jspdf": "^2.5.1",              // <-- CETTE LIGNE DOIT ÊTRE LÀ
-        "jspdf-autotable": "^3.8.2",    // <-- CETTE LIGNE DOIT ÊTRE LÀ
-          "xlsx": "^0.18.5" ,              // <-- CETTE LIGNE DOIT ÊTRE LÀ
+        "jspdf": "^2.5.1",              
+        "jspdf-autotable": "^3.8.2",    
+          "xlsx": "^0.18.5" ,              
           "@radix-ui/react-accordion": "^1.2.3",
           "@radix-ui/react-alert-dialog": "^1.1.6",
           "@radix-ui/react-aspect-ratio": "^1.1.2",
