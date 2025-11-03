@@ -4,28 +4,23 @@ import { useState, useEffect } from "react";
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
+import { Badge } from "../ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Separator } from "../ui/separator";
 import { toast } from "sonner";
-import { Plus, Calendar, Trophy, Clock, Info, Loader2, Archive } from "lucide-react";
+import { Plus, Eye, Calendar, Trophy, Clock, Info, Loader2, Archive, Timer } from "lucide-react";
+import { Draw, Multipliers, getAdminDrawsByStatus, createAdminDraw, publishDrawResults, getDrawReport, DrawReport } from "../../utils/drawsAPI";
+import { OPERATORS_CONFIG as LOCAL_OPERATORS_CONFIG } from "../../utils/games";
 
-// MISE À JOUR : Import des fonctions API réelles
-import { Draw, Multipliers, getAdminDrawsByStatus, createAdminDraw, publishDrawResults } from "../../utils/drawsAPI";
-import { OPERATORS_CONFIG as LOCAL_OPERATORS_CONFIG } from "../../utils/games";// On utilise la config des opérateurs de l'API publique
-
-// Définition des types de pari pour le formulaire
 const BET_TYPES_CONFIG: Record<string, { name: string; label: string }> = {
-    'NAP1': { name: 'NAP 1', label: 'NAP1' },
-    'NAP2': { name: 'NAP 2', label: 'NAP2 / Two Sure' },
-    'NAP3': { name: 'NAP 3', label: 'NAP3' },
-    'NAP4': { name: 'NAP 4', label: 'NAP4' },
-    'NAP5': { name: 'NAP 5', label: 'NAP5 / Perm Nap' },
-    'PERMUTATION': { name: 'Permutation', label: 'Permutation' },
-    'BANKA': { name: 'Banka', label: 'Against / Banka' },
-    'CHANCE_PLUS': { name: 'Chance+', label: 'Chance+' },
+    'NAP1': { name: 'NAP 1', label: 'NAP1' }, 'NAP2': { name: 'NAP 2', label: 'NAP2 / Two Sure' },
+    'NAP3': { name: 'NAP 3', label: 'NAP3' }, 'NAP4': { name: 'NAP 4', label: 'NAP4' },
+    'NAP5': { name: 'NAP 5', label: 'NAP5 / Perm Nap' }, 'PERMUTATION': { name: 'Permutation', label: 'Permutation' },
+    'BANKA': { name: 'Banka', label: 'Against / Banka' }, 'CHANCE_PLUS': { name: 'Chance+', label: 'Chance+' },
     'ANAGRAMME': { name: 'Anagramme', label: 'Anagramme / WE dans WE' },
 };
 
@@ -34,42 +29,46 @@ const getDefaultMultipliers = (): Multipliers => ({
     PERMUTATION: 240, BANKA: 400, CHANCE_PLUS: 90, ANAGRAMME: 10,
 });
 
-// NOUVEAU : Le type de statut est aligné avec le backend
 type AdminDrawStatus = 'upcoming' | 'pending' | 'archived' | 'cancelled';
 
 export function AdminGames() {
     const [activeTab, setActiveTab] = useState<AdminDrawStatus>('upcoming');
     const [isLoading, setIsLoading] = useState(true);
-    const [draws, setDraws] = useState<Draw[]>([]);
+    const [drawsByStatus, setDrawsByStatus] = useState<Record<AdminDrawStatus, Draw[]>>({ upcoming: [], pending: [], archived: [], cancelled: [] });
+    const [error, setError] = useState<Record<AdminDrawStatus, string | null>>({ upcoming: null, pending: null, archived: null, cancelled: null });
     
     const [isCreateModalOpen, setCreateModalOpen] = useState(false);
     const [isResultsModalOpen, setResultsModalOpen] = useState(false);
+    const [isReportView, setReportView] = useState(false);
     const [selectedDraw, setSelectedDraw] = useState<Draw | null>(null);
 
-    // NOUVEAU : Fonction de chargement qui utilise l'API
     const loadDraws = async (status: AdminDrawStatus) => {
         setIsLoading(true);
+        setError(prev => ({ ...prev, [status]: null }));
         try {
             const items = await getAdminDrawsByStatus(status);
-            setDraws(items);
-        } catch (error) {
-            toast.error(`Impossible de charger les tirages "${status}".`);
-            setDraws([]);
+            setDrawsByStatus(prev => ({ ...prev, [status]: items }));
+        } catch (err) {
+            setError(prev => ({ ...prev, [status]: `Impossible de charger les tirages "${status}".` }));
+            setDrawsByStatus(prev => ({ ...prev, [status]: [] }));
         } finally {
             setIsLoading(false);
         }
     };
 
-    // NOUVEAU : L'effet se déclenche au changement d'onglet
     useEffect(() => {
         loadDraws(activeTab);
     }, [activeTab]);
-    
+
+    if (isReportView && selectedDraw) {
+        return <DrawReportView draw={selectedDraw} onBack={() => { setReportView(false); setSelectedDraw(null); }} />;
+    }
+
     return (
         <div className="p-4 md:p-8 space-y-8">
             <header className="flex justify-between items-start flex-wrap gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold">Gestion des Jeux</h1>
+                    <h1 className="text-3xl font-bold">Gestion des Tirages</h1>
                     <p className="text-muted-foreground mt-1">Créez des tirages, saisissez les résultats et consultez les archives</p>
                 </div>
                 <Button onClick={() => setCreateModalOpen(true)} className="bg-yellow-400 text-black hover:bg-yellow-500">
@@ -78,21 +77,23 @@ export function AdminGames() {
             </header>
             
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AdminDrawStatus)}>
-                <TabsList className="grid w-full max-w-lg grid-cols-3">
-                    <TabsTrigger value="upcoming">À Venir</TabsTrigger>
-                    <TabsTrigger value="pending">Saisie Résultats</TabsTrigger>
-                    <TabsTrigger value="archived">Archives</TabsTrigger>
+                <TabsList className="grid w-full max-w-lg grid-cols-3 bg-muted">
+                    <TabsTrigger value="upcoming"><Calendar className="h-4 w-4 mr-2"/>À Venir <Badge className="ml-2">{drawsByStatus.upcoming.length}</Badge></TabsTrigger>
+                    <TabsTrigger value="pending"><Timer className="h-4 w-4 mr-2"/>Résultats <Badge className="ml-2">{drawsByStatus.pending.length}</Badge></TabsTrigger>
+                    <TabsTrigger value="archived"><Trophy className="h-4 w-4 mr-2"/>Archives <Badge className="ml-2">{drawsByStatus.archived.length}</Badge></TabsTrigger>
                 </TabsList>
 
                 <TabsContent value={activeTab} className="mt-6">
                     {isLoading ? (
                         <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground"/></div>
-                    ) : draws.length === 0 ? (
+                    ) : error[activeTab] ? (
+                        <ErrorState message={error[activeTab]!} />
+                    ) : drawsByStatus[activeTab].length === 0 ? (
                        <EmptyState status={activeTab} onCreateClick={() => setCreateModalOpen(true)} />
                     ) : (
                         <div className="grid gap-4">
-                            {draws.map((draw) => (
-                                <DrawCard key={draw.id} draw={draw} onEnterResults={() => {setSelectedDraw(draw); setResultsModalOpen(true);}} />
+                            {drawsByStatus[activeTab].map((draw) => (
+                                <DrawCard key={draw.id} draw={draw} onEnterResults={() => {setSelectedDraw(draw); setResultsModalOpen(true);}} onViewReport={() => {setSelectedDraw(draw); setReportView(true);}} />
                             ))}
                         </div>
                     )}
@@ -103,12 +104,8 @@ export function AdminGames() {
                 isOpen={isCreateModalOpen} 
                 onClose={() => setCreateModalOpen(false)} 
                 onSuccess={() => {
-                    // Si on est déjà sur l'onglet 'upcoming', on recharge. Sinon, on y va.
-                    if (activeTab === 'upcoming') {
-                        loadDraws('upcoming');
-                    } else {
-                        setActiveTab('upcoming');
-                    }
+                    if (activeTab === 'upcoming') { loadDraws('upcoming'); } 
+                    else { setActiveTab('upcoming'); }
                 }}
             />
             {selectedDraw && (
@@ -116,20 +113,16 @@ export function AdminGames() {
                     isOpen={isResultsModalOpen}
                     onClose={() => setResultsModalOpen(false)}
                     draw={selectedDraw}
-                    onSuccess={() => {
-                        // Après saisie, on va voir le résultat dans les archives
-                        setActiveTab('archived');
-                    }}
+                    onSuccess={() => setActiveTab('archived')}
                 />
             )}
         </div>
     );
 }
 
-// --- SOUS-COMPOSANTS (Légèrement modifiés) ---
+// --- SOUS-COMPOSANTS ---
 
-function DrawCard({ draw, onEnterResults }: { draw: Draw; onEnterResults: () => void; }) {
-    // La date est maintenant un string ISO, on la parse
+function DrawCard({ draw, onEnterResults, onViewReport }: { draw: Draw; onEnterResults: () => void; onViewReport: () => void; }) {
     const drawDate = new Date(draw.drawDate);
     const formattedDate = !isNaN(drawDate.getTime()) ? drawDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : "Date invalide";
     const formattedTime = !isNaN(drawDate.getTime()) ? drawDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : "";
@@ -138,30 +131,43 @@ function DrawCard({ draw, onEnterResults }: { draw: Draw; onEnterResults: () => 
       <Card className="p-4 md:p-6">
         <div className="flex justify-between items-start flex-wrap gap-4">
             <div className="flex items-start gap-4">
-                <span className="text-3xl pt-1">🎲</span> {/* Icône statique car non fournie par l'API admin/draws */}
+                <span className="text-3xl pt-1">{draw.operatorIcon || '🎲'}</span>
                 <div>
-                    <h3 className="font-bold text-lg">{draw.operatorName || 'Inconnu'}</h3>
+                    <h3 className="font-bold text-lg">{draw.operatorName}</h3>
                     <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /><span>{formattedDate}</span></div>
                         <div className="flex items-center gap-1.5"><Clock className="h-4 w-4" /><span>{formattedTime}</span></div>
                     </div>
+                    {draw.status === 'upcoming' && <p className="text-xs text-muted-foreground mt-2">{draw.participants} participant(s)</p>}
                     {draw.winningNumbers && draw.winningNumbers.length > 0 && 
-                        <div className="flex items-center gap-1.5 mt-3 text-sm font-semibold text-yellow-400">
-                           <Trophy className="h-4 w-4" /> Numéros: {draw.winningNumbers.join(', ')}
+                        <div className="mt-3 space-y-2">
+                            <p className="flex items-center gap-1.5 text-sm font-semibold text-yellow-400"><Trophy className="h-4 w-4" /> Numéros: {draw.winningNumbers.join(', ')}</p>
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                                <span>{draw.participants} participants</span>
+                                <span className="text-green-500">{draw.winners} gagnant(s)</span>
+                                <span>Profit: <span className={(draw.profit ?? 0) >= 0 ? 'text-green-500' : 'text-red-500'}>{draw.profit?.toLocaleString('fr-FR')} F</span></span>
+                            </div>
                         </div>
                     }
                 </div>
             </div>
-            {/* Le bouton s'affiche pour les tirages en statut 'pending' */}
-            {draw.status === 'pending' && (
-                <Button size="sm" onClick={onEnterResults} className="bg-orange-500 hover:bg-orange-600 text-white">
-                    Saisir les Résultats
-                </Button>
-            )}
+            {draw.status === 'pending' && <Button size="sm" onClick={onEnterResults} className="bg-orange-500 hover:bg-orange-600 text-white">Saisir les Résultats</Button>}
+            {draw.status === 'archived' && <Button size="sm" variant="outline" onClick={onViewReport}><Eye className="h-4 w-4 mr-2" />Voir Rapport</Button>}
         </div>
       </Card>
     );
 }
+
+function ErrorState({ message }: { message: string }) {
+    return (
+        <Card className="p-12 text-center text-red-500 border-red-500/20 bg-red-500/5 flex flex-col items-center justify-center">
+            <Info className="h-12 w-12 mb-4" />
+            <p className="font-semibold">{message}</p>
+        </Card>
+    );
+}
+// Le reste des sous-composants (EmptyState, CreateDrawModal, ResultsModal) reste identique au code que je vous ai fourni précédemment.
+// Je les inclus ici pour que le fichier soit complet.
 
 function EmptyState({ status, onCreateClick }: { status: AdminDrawStatus; onCreateClick: () => void; }) {
     const messages: Record<AdminDrawStatus, {icon: React.ElementType, text: string}> = {
@@ -188,36 +194,25 @@ function CreateDrawModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onCl
     const [operators, setOperators] = useState<{id: string, name: string, icon: string, country: string}[]>([]);
 
     useEffect(() => {
-        const fetchOperators = async () => {
-            try {
-                // On utilise la liste d'opérateurs de l'API publique
-                const ops = await OPERATORS_CONFIG;
-                setOperators(ops);
-            } catch (error) {
-                toast.error("Impossible de charger les opérateurs.");
-            }
-        };
-        if (isOpen) {
-            fetchOperators();
-        }
+        // La config locale est suffisante, pas besoin d'appel API
+        setOperators(LOCAL_OPERATORS_CONFIG.map(op => ({
+            id: op.id,
+            name: op.name,
+            icon: op.icon,
+            country: op.country
+        })));
     }, [isOpen]);
 
     const handleCreate = async () => {
-        if (!newDraw.operatorId || !newDraw.date || !newDraw.time) {
-            return toast.error("Veuillez remplir tous les champs obligatoires.");
-        }
+        if (!newDraw.operatorId || !newDraw.date || !newDraw.time) { return toast.error("Veuillez remplir tous les champs obligatoires."); }
         setIsSubmitting(true);
         try {
-            // NOUVEAU : Appel à l'API réelle
             await createAdminDraw({ ...newDraw, multipliers });
             toast.success("Tirage créé avec succès !");
             onSuccess();
             onClose();
-        } catch (error) {
-            toast.error("Erreur lors de la création du tirage.");
-        } finally {
-            setIsSubmitting(false);
-        }
+        } catch (error) { toast.error("Erreur lors de la création du tirage."); } 
+        finally { setIsSubmitting(false); }
     };
     
     return (
@@ -265,21 +260,15 @@ function ResultsModal({ isOpen, onClose, onSuccess, draw }: { isOpen: boolean; o
 
     const handleSave = async () => {
         const numbersArray = winningNumbers.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
-        if (numbersArray.length !== 5) { // Votre backend attend 5 numéros
-            return toast.error("Veuillez saisir exactement 5 numéros valides.");
-        }
+        if (numbersArray.length !== 5) { return toast.error("Veuillez saisir exactement 5 numéros valides."); }
         setIsSubmitting(true);
         try {
-            // NOUVEAU : Appel à l'API réelle
             await publishDrawResults(draw.id, numbersArray);
             toast.success("Résultats publiés et gains distribués !");
             onSuccess();
             onClose();
-        } catch (error) {
-            toast.error("Erreur lors de la publication des résultats.");
-        } finally {
-            setIsSubmitting(false);
-        }
+        } catch (error) { toast.error("Erreur lors de la publication des résultats."); } 
+        finally { setIsSubmitting(false); }
     };
 
     return (
@@ -301,5 +290,62 @@ function ResultsModal({ isOpen, onClose, onSuccess, draw }: { isOpen: boolean; o
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+    );
+}
+
+// NOUVEAU : Composant pour la vue de rapport
+function DrawReportView({ draw, onBack }: { draw: Draw; onBack: () => void; }) {
+    const [report, setReport] = useState<DrawReport | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchReport = async () => {
+            setIsLoading(true);
+            try {
+                const data = await getDrawReport(draw.id);
+                setReport(data);
+            } catch (error) {
+                toast.error("Impossible de charger le rapport du tirage.");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchReport();
+    }, [draw.id]);
+
+    if (isLoading) {
+        return <div className="p-8 flex justify-center items-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    }
+
+    if (!report) {
+        return (
+            <div className="p-8">
+                <Button variant="ghost" onClick={onBack} className="mb-2">← Retour</Button>
+                <ErrorState message="Le rapport pour ce tirage n'a pas pu être chargé." />
+            </div>
+        );
+    }
+    
+    const { stats, tickets } = report;
+    const winners = tickets.filter(t => t.status === 'won');
+
+    return (
+        <div className="p-4 md:p-6 lg:p-8 space-y-6">
+            <div>
+                <Button variant="ghost" onClick={onBack} className="mb-2">← Retour aux archives</Button>
+                <h1 className="text-3xl font-bold">Rapport de Tirage</h1>
+                <p className="text-muted-foreground">{draw.operatorName} - {new Date(draw.drawDate).toLocaleDateString('fr-FR')}</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <Card className="p-6"><p className="text-sm text-muted-foreground">Total Mises</p><p className="text-xl font-bold">{stats.total_bets.toLocaleString('fr-FR')} F</p></Card>
+                <Card className="p-6"><p className="text-sm text-muted-foreground">Total Gains</p><p className="text-xl font-bold text-orange-400">{stats.total_winnings.toLocaleString('fr-FR')} F</p></Card>
+                <Card className="p-6"><p className="text-sm text-muted-foreground">Bénéfice</p><p className={`text-xl font-bold ${stats.profit >= 0 ? 'text-green-500' : 'text-red-500'}`}>{stats.profit.toLocaleString('fr-FR')} F</p></Card>
+                <Card className="p-6"><p className="text-sm text-muted-foreground">Gagnants</p><p className="text-xl font-bold">{stats.winners} / {stats.participants}</p></Card>
+            </div>
+            <Card>
+                <div className="p-6"><h3 className="text-lg font-bold">Liste des Gagnants ({winners.length})</h3></div>
+                {winners.length > 0 && <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Utilisateur</TableHead><TableHead>Pari</TableHead><TableHead>Numéros</TableHead><TableHead>Mise</TableHead><TableHead className="text-right">Gain</TableHead></TableRow></TableHeader><TableBody>{winners.map(t => (<TableRow key={t.id}><TableCell>{t.username}</TableCell><TableCell>{t.betType}</TableCell><TableCell>{t.numbers}</TableCell><TableCell>{t.betAmount.toLocaleString('fr-FR')} F</TableCell><TableCell className="text-right text-green-500 font-bold">{t.winAmount?.toLocaleString('fr-FR')} F</TableCell></TableRow>))}</TableBody></Table></div>}
+            </Card>
+        </div>
     );
 }

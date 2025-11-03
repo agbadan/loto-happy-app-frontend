@@ -10,12 +10,18 @@ export type Multipliers = Record<string, number>;
 
 export interface Draw {
   id: string;
-  operatorName: string;
   operatorId: string;
+  operatorName: string;
+  operatorIcon: string; // <-- AJOUTÉ
   drawDate: string;
-  // MISE À JOUR : Ajout du statut 'pending'
   status: 'upcoming' | 'pending' | 'completed' | 'archived' | 'cancelled';
   winningNumbers: number[] | null;
+  // --- NOUVEAUX CHAMPS AJOUTÉS ---
+  participants: number;
+  winners?: number | null;
+  totalBets?: number | null;
+  totalWinnings?: number | null;
+  profit?: number | null;
 }
 
 export interface PaginatedDraws {
