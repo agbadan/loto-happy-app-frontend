@@ -18,6 +18,8 @@ import { getDrawById, createTicket, Draw } from "../utils/drawsAPI";
 import { getOperators, Operator } from "../utils/dashboardAPI";
 import { BetType, BET_TYPES_CONFIG, calculatePermutationCombinations } from "../utils/games";
 
+import { cn } from "./ui/utils"; // <-- AJOUTEZ CETTE LIGNE
+
 interface GameScreenAdvancedProps {
   drawId: string;
   betType: BetType;
