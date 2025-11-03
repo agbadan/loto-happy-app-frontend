@@ -66,13 +66,8 @@ export function AdminGames() {
 
     return (
         <div className="p-4 md:p-8 space-y-8">
-        <div className="p-4 md:p-8 space-y-8">
-            {/* --- DÉBUT DE LA CORRECTION RESPONSIVE --- */}
-            
-            {/* Conteneur principal pour le header de la page */}
+            {/* --- BLOC HEADER CORRIGÉ --- */}
             <div className="space-y-4">
-                
-                {/* Ligne 1 : Titre et Bouton, qui s'empilent sur mobile */}
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
                     <div>
                         <h1 className="text-3xl font-bold">Gestion des Tirages</h1>
@@ -80,13 +75,13 @@ export function AdminGames() {
                     </div>
                     <Button 
                         onClick={() => setCreateModalOpen(true)} 
-                        className="bg-yellow-400 text-black hover:bg-yellow-500 w-full sm:w-auto flex-shrink-0"
+                        className="bg-[#FFD700] text-[#121212] hover:bg-[#FFD700]/90 w-full sm:w-auto flex-shrink-0"
                     >
                         <Plus className="mr-2 h-4 w-4" />Nouveau Tirage
                     </Button>
                 </div>
                 
-                {/* Ligne 2 : Barre d'onglets */}
+                {/* La balise <Tabs> englobe maintenant à la fois la liste et le contenu */}
                 <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AdminDrawStatus)}>
                     <div className="w-full overflow-x-auto">
                         <TabsList className="inline-flex w-auto min-w-full sm:w-full sm:max-w-lg bg-muted">
@@ -107,26 +102,27 @@ export function AdminGames() {
                             </TabsTrigger>
                         </TabsList>
                     </div>
+                    
+                    {/* Le contenu des onglets DOIT être à l'intérieur de <Tabs> */}
+                    <TabsContent value={activeTab} className="mt-6">
+                        {isLoading ? (
+                            <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground"/></div>
+                        ) : error[activeTab] ? (
+                            <ErrorState message={error[activeTab]!} />
+                        ) : drawsByStatus[activeTab].length === 0 ? (
+                           <EmptyState status={activeTab} onCreateClick={() => setCreateModalOpen(true)} />
+                        ) : (
+                            <div className="grid gap-4">
+                                {drawsByStatus[activeTab].map((draw) => (
+                                    <DrawCard key={draw.id} draw={draw} onEnterResults={() => {setSelectedDraw(draw); setResultsModalOpen(true);}} onViewReport={() => {setSelectedDraw(draw); setReportView(true);}} />
+                                ))}
+                            </div>
+                        )}
+                    </TabsContent>
                 </Tabs>
             </div>
-
-    <TabsContent value={activeTab} className="mt-6">
-        {isLoading ? (
-            <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground"/></div>
-        ) : error[activeTab] ? (
-            <ErrorState message={error[activeTab]!} />
-        ) : drawsByStatus[activeTab].length === 0 ? (
-           <EmptyState status={activeTab} onCreateClick={() => setCreateModalOpen(true)} />
-        ) : (
-            <div className="grid gap-4">
-                {drawsByStatus[activeTab].map((draw) => (
-                    <DrawCard key={draw.id} draw={draw} onEnterResults={() => {setSelectedDraw(draw); setResultsModalOpen(true);}} onViewReport={() => {setSelectedDraw(draw); setReportView(true);}} />
-                ))}
-            </div>
-        )}
-    </TabsContent>
-</Tabs>
             
+            {/* Les modales restent à l'extérieur de la structure principale du return */}
             <CreateDrawModal 
                 isOpen={isCreateModalOpen} 
                 onClose={() => setCreateModalOpen(false)} 
@@ -146,7 +142,6 @@ export function AdminGames() {
         </div>
     );
 }
-
 // --- SOUS-COMPOSANTS ---
 
 
